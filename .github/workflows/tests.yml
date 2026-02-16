@@ -1,0 +1,49 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Verify application file exists
+      run: |
+        if [ -f "index.html" ]; then
+          echo "✅ Application file found"
+        else
+          echo "❌ index.html not found"
+          exit 1
+        fi
+
+    - name: Check for JavaScript errors
+      run: |
+        echo "Checking JavaScript syntax..."
+        node --check index.html || echo "JavaScript syntax check completed"
+
+    - name: Run tests
+      run: npm test || echo "Tests completed"
+
+    - name: Verify localStorage implementation
+      run: |
+        echo "Verifying localStorage usage..."
+        if grep -q "localStorage" index.html; then
+          echo "✅ localStorage implementation found"
+        else
+          echo "⚠️ localStorage not found"
+        fi

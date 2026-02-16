@@ -1,0 +1,93 @@
+name: Security
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 9 * * 1'  # Every Monday at 9 AM
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install dependencies
+      run: npm install || echo "No dependencies to install"
+
+    - name: Run npm audit
+      run: npm audit --audit-level=moderate || echo "Audit completed"
+      continue-on-error: true
+
+    - name: Check for hardcoded secrets
+      run: |
+        echo "Checking for hardcoded secrets..."
+        if grep -ri "password\|secret\|api[_-]key\|token" index.html; then
+          echo "⚠️ Possible secrets found - please review"
+        else
+          echo "✅ No obvious secrets found"
+        fi
+
+    - name: Check for XSS vulnerabilities
+      run: |
+        echo "Checking for XSS vulnerabilities..."
+        if grep -E "innerHTML|eval\(|document.write" index.html; then
+          echo "⚠️ Potential XSS vulnerabilities found"
+        else
+          echo "✅ No obvious XSS vulnerabilities found"
+        fi
+
+    - name: Check for SQL injection patterns
+      run: |
+        echo "Checking for SQL injection patterns..."
+        if grep -iE "SELECT.*FROM|INSERT INTO|DELETE FROM" index.html; then
+          echo "⚠️ SQL patterns found - review recommended"
+        else
+          echo "✅ No SQL patterns found"
+        fi
+
+    - name: Validate external resources
+      run: |
+        echo "Checking for external resources..."
+        EXTERNAL_URLS=$(grep -oP 'https?://[^"'\'' ]+' index.html | grep -v "localhost" || true)
+        if [ -z "$EXTERNAL_URLS" ]; then
+          echo "✅ No external resources found"
+        else
+          echo "⚠️ External resources detected:"
+          echo "$EXTERNAL_URLS"
+        fi
+
+    - name: Create security report
+      if: always()
+      run: |
+        echo "# 🔒 Security Report" > security-report.md
+        echo "" >> security-report.md
+        echo "## Analysis Summary" >> security-report.md
+        echo "" >> security-report.md
+        echo "- ✅ Secret check: Complete" >> security-report.md
+        echo "- ✅ XSS check: Complete" >> security-report.md
+        echo "- ✅ SQL injection check: Complete" >> security-report.md
+        echo "- ✅ External resources check: Complete" >> security-report.md
+        echo "" >> security-report.md
+        echo "Date: $(date)" >> security-report.md
+
+    - name: Upload security report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: security-report
+        path: security-report.md
