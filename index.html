@@ -671,7 +671,7 @@
 
     .pomodoro-progress-bar {
         height: 100%;
-        background: #1DB954;
+        background: var(--accent-green);
         transition: width 1s linear;
         border-radius: 2px;
     }
@@ -700,8 +700,13 @@
     }
 
     .pomodoro-btn.primary {
-        background: #1DB954;
+        background: var(--accent-green);
         color: #000000;
+        border-color: var(--accent-green);
+    }
+
+    .pomodoro-btn.primary:hover {
+        background: var(--accent-green-hover);
     }
 
     .pomodoro-stats {
@@ -711,7 +716,7 @@
 
     .pomodoro-count {
         font-weight: 700;
-        color: #1DB954;
+        color: var(--accent-green);
     }
 
     /* SCROLLBAR */
@@ -908,6 +913,11 @@
         const body = document.body;
         const themeIcon = document.getElementById('theme-icon');
         
+        if (!themeIcon) {
+            console.error('Theme icon element not found');
+            return;
+        }
+        
         if (body.classList.contains('light-mode')) {
             body.classList.remove('light-mode');
             themeIcon.textContent = '🌙';
@@ -922,9 +932,13 @@
     // LOAD SAVED THEME
     function loadTheme() {
         const savedTheme = localStorage.getItem('theme');
+        const themeIcon = document.getElementById('theme-icon');
+        
         if (savedTheme === 'light') {
             document.body.classList.add('light-mode');
-            document.getElementById('theme-icon').textContent = '☀️';
+            if (themeIcon) themeIcon.textContent = '☀️';
+        } else {
+            if (themeIcon) themeIcon.textContent = '🌙';
         }
     }
 
@@ -1421,6 +1435,16 @@
     if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission();
     }
+
+    // LOAD THEME IMMEDIATELY (before DOMContentLoaded)
+    (function() {
+        const savedTheme = localStorage.getItem('theme');
+        const themeIcon = document.getElementById('theme-icon');
+        if (savedTheme === 'light') {
+            document.body.classList.add('light-mode');
+            if (themeIcon) themeIcon.textContent = '☀️';
+        }
+    })();
 
     // START
     if (document.readyState === 'loading') {
