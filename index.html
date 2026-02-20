@@ -12,7 +12,6 @@
             box-sizing: border-box;
         }
 
-```
     :root {
         --bg-primary: #000000;
         --bg-secondary: #121212;
@@ -753,7 +752,6 @@
         }
     }
 </style>
-```
 
 </head>
 <body>
@@ -768,7 +766,6 @@
                 </button>
             </div>
 
-```
         <div class="nav-section">
             <div class="nav-title">Menu</div>
             <div class="nav-item active" data-view="all">
@@ -831,10 +828,10 @@
 
         <!-- TABS -->
         <div class="tabs" id="tabs-container">
-            <button class="tab-btn active" onclick="switchTab('all')">All</button>
-            <button class="tab-btn" onclick="switchTab('today')">Today</button>
-            <button class="tab-btn" onclick="switchTab('priority')">Priority</button>
-            <button class="tab-btn" onclick="switchTab('stats')">Statistics</button>
+            <button class="tab-btn active" data-tab="all" onclick="switchTab('all')">All</button>
+            <button class="tab-btn" data-tab="today" onclick="switchTab('today')">Today</button>
+            <button class="tab-btn" data-tab="priority" onclick="switchTab('priority')">Priority</button>
+            <button class="tab-btn" data-tab="stats" onclick="switchTab('stats')">Statistics</button>
         </div>
 
         <!-- CONTENT AREA -->
@@ -1008,9 +1005,8 @@
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.classList.remove('active');
         });
-        if (event && event.target) {
-            event.target.classList.add('active');
-        }
+        const activeBtn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
+        if (activeBtn) activeBtn.classList.add('active');
 
         // Update content
         document.querySelectorAll('.tab-content').forEach(content => {
@@ -1037,8 +1033,8 @@
             const incompleteTasks = list.tasks.filter(t => !t.completed).length;
             return `
                 <div class="list-item ${list.id === currentListId ? 'active' : ''}" onclick="selectList(${list.id})">
-                    <span class="list-icon">${list.icon}</span>
-                    <span>${list.name}</span>
+                    <span class="list-icon">${escapeHtml(list.icon)}</span>
+                    <span>${escapeHtml(list.name)}</span>
                     <span class="list-count">${incompleteTasks}</span>
                 </div>
             `;
@@ -1145,7 +1141,7 @@
                     <div class="task-wrapper">
                         <div class="${taskClass}">
                             <div class="task-checkbox" onclick="toggleTask(${task.id})"></div>
-                            <input type="text" class="edit-task-input" id="edit-input-${task.id}" value="${task.text}" onkeypress="handleEditKeyPress(event, ${task.id})" autofocus>
+                            <input type="text" class="edit-task-input" id="edit-input-${task.id}" value="${escapeHtml(task.text)}" onkeypress="handleEditKeyPress(event, ${task.id})" autofocus>
                             <div class="task-actions" style="opacity: 1;">
                                 <button class="task-btn edit-btn" onclick="saveEdit(${task.id})" title="Save">✓</button>
                                 <button class="task-btn delete-btn" onclick="cancelEdit()" title="Cancel">✕</button>
@@ -1160,7 +1156,7 @@
                     <div class="${taskClass}">
                         <div class="task-checkbox" onclick="toggleTask(${task.id})"></div>
                         <div class="task-content" onclick="toggleTask(${task.id})">
-                            <div class="task-text">${task.text}</div>
+                            <div class="task-text">${escapeHtml(task.text)}</div>
                         </div>
                         <div class="task-badges">
                             ${task.priority ? '<span class="task-badge">⭐</span>' : ''}
@@ -1221,14 +1217,17 @@
     function saveEdit(taskId) {
         const input = document.getElementById(`edit-input-${taskId}`);
         const newText = input.value.trim();
-        
-        if (newText) {
-            const list = lists.find(l => l.id === currentListId);
-            const task = list.tasks.find(t => t.id === taskId);
-            task.text = newText;
-            saveLists();
+
+        if (!newText) {
+            input.style.borderColor = 'var(--accent-red)';
+            input.focus();
+            return;
         }
-        
+
+        const list = lists.find(l => l.id === currentListId);
+        const task = list.tasks.find(t => t.id === taskId);
+        task.text = newText;
+        saveLists();
         editingTaskId = null;
         renderAllViews();
     }
@@ -1258,13 +1257,12 @@
 
     // STATISTICS
     function updateAllStats() {
-        const allTasks = lists.flatMap(l => l.tasks);
-        const total = allTasks.length;
-        const completed = allTasks.filter(t => t.completed).length;
-        const priority = allTasks.filter(t => t.priority && !t.completed).length;
-        const today = allTasks.filter(t => t.today && !t.completed).length;
+        const list = lists.find(l => l.id === currentListId);
+        const tasks = list ? list.tasks : [];
+        const priority = tasks.filter(t => t.priority && !t.completed).length;
+        const today = tasks.filter(t => t.today && !t.completed).length;
 
-        document.getElementById('badge-all').textContent = allTasks.filter(t => !t.completed).length;
+        document.getElementById('badge-all').textContent = tasks.filter(t => !t.completed).length;
         document.getElementById('badge-today').textContent = today;
         document.getElementById('badge-priority').textContent = priority;
     }
@@ -1289,6 +1287,13 @@
     // SAVE
     function saveLists() {
         localStorage.setItem('taskLists', JSON.stringify(lists));
+    }
+
+    // ESCAPE HTML
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.appendChild(document.createTextNode(text));
+        return div.innerHTML;
     }
 
     // POMODORO TIMER - DEBUG-TESTED CODE
@@ -1324,7 +1329,8 @@
     }
 
     function incrementPomodoroCount() {
-        const data = JSON.parse(localStorage.getItem('pomodoroData'));
+        const stored = localStorage.getItem('pomodoroData');
+        const data = stored ? JSON.parse(stored) : { date: new Date().toDateString(), count: 0 };
         data.count++;
         localStorage.setItem('pomodoroData', JSON.stringify(data));
         const todayElement = document.getElementById('pomodoro-today');
@@ -1457,7 +1463,6 @@
         loadPomodoroData();
     }
 </script>
-```
 
 </body>
 </html>
