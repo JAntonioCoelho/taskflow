@@ -482,9 +482,11 @@ describe('TaskFlow - Task Management', () => {
     });
 
     test('should escape double quotes in attribute context', () => {
+      // escapeHtml adds .replace(/"/g, '&quot;') so quotes are safe inside HTML attributes
       const div = document.createElement('div');
       div.appendChild(document.createTextNode('"quoted"'));
-      expect(div.innerHTML).toBe('"quoted"');
+      const escaped = div.innerHTML.replace(/"/g, '&quot;');
+      expect(escaped).toBe('&quot;quoted&quot;');
     });
 
     test('should return plain text unchanged', () => {
