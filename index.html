@@ -839,7 +839,7 @@
             <!-- TAB: ALL TASKS -->
             <div class="tab-content active" id="content-all">
                 <div class="add-task">
-                    <input type="text" id="task-input" placeholder="What do you need to do?" onkeypress="handleKeyPress(event)">
+                    <input type="text" id="task-input" placeholder="What do you need to do?" onkeydown="handleKeyPress(event)">
                     <button onclick="addTask()">Add</button>
                 </div>
                 <div class="tasks-container" id="tasks-all"></div>
@@ -1001,6 +1001,8 @@
     }
 
     function switchTab(tab) {
+        currentView = tab;
+
         // Update buttons
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.classList.remove('active');
@@ -1073,6 +1075,7 @@
         
         if (text) {
             const list = lists.find(l => l.id === currentListId);
+            if (!list) return;
             const newTask = {
                 id: Date.now(),
                 text: text,
@@ -1100,7 +1103,8 @@
         const containerId = `tasks-${view}`;
         const container = document.getElementById(containerId);
         const list = lists.find(l => l.id === currentListId);
-        
+        if (!list) return;
+
         let tasks = list.tasks;
         
         // Filter
@@ -1141,7 +1145,7 @@
                     <div class="task-wrapper">
                         <div class="${taskClass}">
                             <div class="task-checkbox" onclick="toggleTask(${task.id})"></div>
-                            <input type="text" class="edit-task-input" id="edit-input-${task.id}" value="${escapeHtml(task.text)}" onkeypress="handleEditKeyPress(event, ${task.id})" autofocus>
+                            <input type="text" class="edit-task-input" id="edit-input-${task.id}" value="${escapeHtml(task.text)}" onkeydown="handleEditKeyPress(event, ${task.id})" autofocus>
                             <div class="task-actions" style="opacity: 1;">
                                 <button class="task-btn edit-btn" onclick="saveEdit(${task.id})" title="Save">✓</button>
                                 <button class="task-btn delete-btn" onclick="cancelEdit()" title="Cancel">✕</button>
@@ -1178,6 +1182,7 @@
         renderTasks('all');
         renderTasks('today');
         renderTasks('priority');
+        updateDetailedStats();
     }
 
     // TASK ACTIONS
@@ -1293,7 +1298,7 @@
     function escapeHtml(text) {
         const div = document.createElement('div');
         div.appendChild(document.createTextNode(text));
-        return div.innerHTML;
+        return div.innerHTML.replace(/"/g, '&quot;');
     }
 
     // POMODORO TIMER - DEBUG-TESTED CODE
@@ -1351,9 +1356,11 @@
             console.error('Start button not found');
             return;
         }
-        
+
         pomodoroIsRunning = true;
         startBtn.textContent = 'Pause';
+        const statusEl = document.getElementById('status-pomodoro');
+        if (statusEl) statusEl.textContent = pomodoroIsBreak ? 'Break running' : 'Running';
         
         pomodoroInterval = setInterval(() => {
             pomodoroTimeLeft--;
@@ -1371,6 +1378,8 @@
         pomodoroInterval = null;
         const startBtn = document.getElementById('pomodoro-start');
         if (startBtn) startBtn.textContent = 'Start';
+        const statusEl = document.getElementById('status-pomodoro');
+        if (statusEl) statusEl.textContent = 'Paused';
     }
 
     function resetPomodoro() {
@@ -1380,6 +1389,8 @@
         pomodoroIsBreak = false;
         const statusEl = document.getElementById('pomodoro-status');
         if (statusEl) statusEl.textContent = '🍅 POMODORO';
+        const idleEl = document.getElementById('status-pomodoro');
+        if (idleEl) idleEl.textContent = 'Idle';
         updatePomodoroDisplay();
     }
 
