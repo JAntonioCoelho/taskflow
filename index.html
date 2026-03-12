@@ -207,6 +207,64 @@
         font-size: 12px;
     }
 
+    .list-actions {
+        display: flex;
+        gap: 2px;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .list-item:hover .list-actions {
+        opacity: 1;
+    }
+
+    .list-action-btn {
+        width: 22px;
+        height: 22px;
+        border-radius: 4px;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        color: var(--text-secondary);
+        padding: 0;
+    }
+
+    .list-action-btn:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+    }
+
+    .list-action-btn.delete:hover {
+        background: var(--accent-red);
+        color: #ffffff;
+    }
+
+    .clear-completed-btn {
+        width: 100%;
+        padding: 10px 12px;
+        background: transparent;
+        border: 1px dashed var(--border-color);
+        border-radius: 6px;
+        color: var(--text-tertiary);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-top: 8px;
+        text-align: center;
+    }
+
+    .clear-completed-btn:hover {
+        border-color: var(--accent-red);
+        color: var(--accent-red);
+        background: var(--bg-hover);
+    }
+
     .add-list-btn {
         width: 100%;
         padding: 12px;
@@ -843,6 +901,7 @@
                     <button onclick="addTask()">Add</button>
                 </div>
                 <div class="tasks-container" id="tasks-all"></div>
+                <div id="clear-completed-container"></div>
             </div>
 
             <!-- TAB: TODAY -->
@@ -1038,6 +1097,10 @@
                     <span class="list-icon">${escapeHtml(list.icon)}</span>
                     <span>${escapeHtml(list.name)}</span>
                     <span class="list-count">${incompleteTasks}</span>
+                    <div class="list-actions">
+                        <button class="list-action-btn" onclick="event.stopPropagation(); renameList(${list.id})" title="Rename">✏️</button>
+                        <button class="list-action-btn delete" onclick="event.stopPropagation(); deleteList(${list.id})" title="Delete">🗑️</button>
+                    </div>
                 </div>
             `;
         }).join('');
@@ -1055,7 +1118,7 @@
         if (name && name.trim()) {
             const icons = ['📝', '🎯', '💡', '🎨', '🏃', '🎵', '🍕', '✈️'];
             const randomIcon = icons[Math.floor(Math.random() * icons.length)];
-            
+
             const newList = {
                 id: Date.now(),
                 name: name.trim(),
@@ -1066,6 +1129,57 @@
             saveLists();
             renderLists();
         }
+    }
+
+    function deleteList(listId) {
+        if (lists.length <= 1) {
+            alert('Cannot delete the last list.');
+            return;
+        }
+        if (!confirm('Delete this list and all its tasks?')) return;
+        lists = lists.filter(l => l.id !== listId);
+        if (currentListId === listId) {
+            currentListId = lists[0].id;
+        }
+        editingTaskId = null;
+        saveLists();
+        renderLists();
+        renderAllViews();
+        updateAllStats();
+    }
+
+    function renameList(listId) {
+        const list = lists.find(l => l.id === listId);
+        if (!list) return;
+        const newName = prompt('Rename list:', list.name);
+        if (newName && newName.trim()) {
+            list.name = newName.trim();
+            saveLists();
+            renderLists();
+        }
+    }
+
+    function clearCompleted() {
+        const list = lists.find(l => l.id === currentListId);
+        if (!list) return;
+        const count = list.tasks.filter(t => t.completed).length;
+        if (count === 0) return;
+        if (!confirm(`Delete ${count} completed task${count !== 1 ? 's' : ''}?`)) return;
+        editingTaskId = null;
+        list.tasks = list.tasks.filter(t => !t.completed);
+        saveLists();
+        renderAllViews();
+        updateAllStats();
+    }
+
+    function updateClearCompletedBtn() {
+        const list = lists.find(l => l.id === currentListId);
+        const clearContainer = document.getElementById('clear-completed-container');
+        if (!clearContainer) return;
+        const count = list ? list.tasks.filter(t => t.completed).length : 0;
+        clearContainer.innerHTML = count > 0
+            ? `<button class="clear-completed-btn" onclick="clearCompleted()">🗑️ Clear ${count} completed task${count !== 1 ? 's' : ''}</button>`
+            : '';
     }
 
     // ADD TASK
@@ -1183,6 +1297,7 @@
         renderTasks('today');
         renderTasks('priority');
         updateDetailedStats();
+        updateClearCompletedBtn();
     }
 
     // TASK ACTIONS

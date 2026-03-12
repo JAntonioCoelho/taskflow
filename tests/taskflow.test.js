@@ -467,6 +467,136 @@ describe('TaskFlow - Task Management', () => {
     });
   });
 
+  describe('Delete List', () => {
+
+    test('should delete a list by id', () => {
+      let lists = [
+        { id: 1, name: 'Personal', tasks: [] },
+        { id: 2, name: 'Work',     tasks: [] }
+      ];
+      lists = lists.filter(l => l.id !== 2);
+      expect(lists).toHaveLength(1);
+      expect(lists.find(l => l.id === 2)).toBeUndefined();
+    });
+
+    test('should not allow deleting the last list', () => {
+      const lists = [{ id: 1, name: 'Personal', tasks: [] }];
+      const canDelete = lists.length > 1;
+      expect(canDelete).toBe(false);
+    });
+
+    test('should fall back to first list when active list is deleted', () => {
+      let lists = [
+        { id: 1, name: 'Personal', tasks: [] },
+        { id: 2, name: 'Work',     tasks: [] }
+      ];
+      let currentListId = 2;
+
+      lists = lists.filter(l => l.id !== currentListId);
+      if (!lists.find(l => l.id === currentListId)) {
+        currentListId = lists[0].id;
+      }
+
+      expect(currentListId).toBe(1);
+      expect(lists).toHaveLength(1);
+    });
+
+    test('should preserve other lists when one is deleted', () => {
+      let lists = [
+        { id: 1, name: 'Personal', tasks: [{ id: 10, text: 'task' }] },
+        { id: 2, name: 'Work',     tasks: [] },
+        { id: 3, name: 'Study',    tasks: [] }
+      ];
+      lists = lists.filter(l => l.id !== 2);
+      expect(lists).toHaveLength(2);
+      expect(lists[0].tasks).toHaveLength(1);
+    });
+  });
+
+  describe('Rename List', () => {
+
+    test('should rename a list', () => {
+      const list = { id: 1, name: 'Old Name', tasks: [] };
+      const newName = 'New Name';
+      if (newName && newName.trim()) {
+        list.name = newName.trim();
+      }
+      expect(list.name).toBe('New Name');
+    });
+
+    test('should not rename with empty string', () => {
+      const list = { id: 1, name: 'Original', tasks: [] };
+      const newName = '   ';
+      if (newName && newName.trim()) {
+        list.name = newName.trim();
+      }
+      expect(list.name).toBe('Original');
+    });
+
+    test('should trim whitespace from new name', () => {
+      const list = { id: 1, name: 'Old', tasks: [] };
+      const newName = '  Trimmed Name  ';
+      if (newName && newName.trim()) {
+        list.name = newName.trim();
+      }
+      expect(list.name).toBe('Trimmed Name');
+    });
+  });
+
+  describe('Clear Completed', () => {
+
+    test('should remove all completed tasks', () => {
+      const list = {
+        id: 1,
+        tasks: [
+          { id: 1, completed: true  },
+          { id: 2, completed: false },
+          { id: 3, completed: true  }
+        ]
+      };
+      list.tasks = list.tasks.filter(t => !t.completed);
+      expect(list.tasks).toHaveLength(1);
+      expect(list.tasks[0].id).toBe(2);
+    });
+
+    test('should leave list unchanged when no completed tasks', () => {
+      const list = {
+        id: 1,
+        tasks: [
+          { id: 1, completed: false },
+          { id: 2, completed: false }
+        ]
+      };
+      const count = list.tasks.filter(t => t.completed).length;
+      if (count > 0) {
+        list.tasks = list.tasks.filter(t => !t.completed);
+      }
+      expect(list.tasks).toHaveLength(2);
+    });
+
+    test('should count completed tasks correctly for button label', () => {
+      const tasks = [
+        { id: 1, completed: true  },
+        { id: 2, completed: false },
+        { id: 3, completed: true  }
+      ];
+      const count = tasks.filter(t => t.completed).length;
+      expect(count).toBe(2);
+    });
+
+    test('should result in empty task list when all tasks are completed', () => {
+      const list = {
+        id: 1,
+        tasks: [
+          { id: 1, completed: true },
+          { id: 2, completed: true }
+        ]
+      };
+      list.tasks = list.tasks.filter(t => !t.completed);
+      expect(list.tasks).toHaveLength(0);
+    });
+  });
+
   describe('XSS Protection (escapeHtml)', () => {
 
     test('should escape < and > characters', () => {
