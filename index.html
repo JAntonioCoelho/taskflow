@@ -741,7 +741,7 @@
         .container {
             grid-template-columns: 1fr;
         }
-        
+
         .sidebar {
             display: none;
         }
@@ -750,6 +750,117 @@
             padding-left: 16px;
             padding-right: 16px;
         }
+
+        .radio-widget {
+            display: none;
+        }
+    }
+
+    /* RADIO WIDGET */
+    .radio-widget {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: 50px;
+        padding: 8px 14px;
+        transition: border-color 0.3s ease, background 0.3s ease;
+        flex-shrink: 0;
+    }
+
+    .radio-widget:hover {
+        border-color: var(--accent-green);
+    }
+
+    .radio-info {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .radio-station-name {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--accent-green);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+    }
+
+    .radio-now-playing {
+        font-size: 11px;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 140px;
+    }
+
+    .radio-play-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: var(--accent-green);
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        transition: all 0.2s;
+        flex-shrink: 0;
+        color: #000;
+    }
+
+    .radio-play-btn:hover {
+        background: var(--accent-green-hover);
+        transform: scale(1.05);
+    }
+
+    .radio-volume {
+        width: 60px;
+        height: 3px;
+        cursor: pointer;
+        accent-color: var(--accent-green);
+        flex-shrink: 0;
+    }
+
+    .radio-bars {
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        height: 16px;
+        flex-shrink: 0;
+    }
+
+    .radio-bar {
+        width: 3px;
+        background: var(--accent-green);
+        border-radius: 2px;
+    }
+
+    .radio-bar:nth-child(1) { height: 8px; }
+    .radio-bar:nth-child(2) { height: 14px; }
+    .radio-bar:nth-child(3) { height: 6px; }
+    .radio-bar:nth-child(4) { height: 10px; }
+
+    .radio-bars.playing .radio-bar:nth-child(1) {
+        animation: radio-bar-bounce 0.8s ease-in-out infinite;
+    }
+    .radio-bars.playing .radio-bar:nth-child(2) {
+        animation: radio-bar-bounce 0.8s ease-in-out 0.15s infinite;
+    }
+    .radio-bars.playing .radio-bar:nth-child(3) {
+        animation: radio-bar-bounce 0.8s ease-in-out 0.3s infinite;
+    }
+    .radio-bars.playing .radio-bar:nth-child(4) {
+        animation: radio-bar-bounce 0.8s ease-in-out 0.45s infinite;
+    }
+
+    @keyframes radio-bar-bounce {
+        0%, 100% { height: 4px; }
+        50% { height: 16px; }
     }
 </style>
 
@@ -823,6 +934,21 @@
             <div class="header-left">
                 <h1 id="view-title">All Tasks</h1>
                 <div class="header-subtitle" id="view-subtitle"></div>
+            </div>
+            <!-- RADIO WIDGET -->
+            <div class="radio-widget" id="radio-widget">
+                <div class="radio-bars" id="radio-bars">
+                    <div class="radio-bar"></div>
+                    <div class="radio-bar"></div>
+                    <div class="radio-bar"></div>
+                    <div class="radio-bar"></div>
+                </div>
+                <div class="radio-info">
+                    <div class="radio-station-name">📻 Rádio Comercial</div>
+                    <div class="radio-now-playing" id="radio-now-playing">Click to listen</div>
+                </div>
+                <button class="radio-play-btn" id="radio-play-btn" onclick="toggleRadio()" title="Play / Pause">▶</button>
+                <input type="range" class="radio-volume" id="radio-volume" min="0" max="1" step="0.05" value="0.7" oninput="setRadioVolume(this.value)" title="Volume">
             </div>
         </div>
 
@@ -1461,6 +1587,48 @@
     } else {
         init();
         loadPomodoroData();
+    }
+
+    // RADIO COMERCIAL
+    const RADIO_STREAM = 'https://stream-icy.bauermedia.pt/comercial.mp3';
+    let radioAudio = null;
+    let radioPlaying = false;
+
+    function toggleRadio() {
+        if (!radioAudio) {
+            radioAudio = new Audio(RADIO_STREAM);
+            radioAudio.volume = parseFloat(document.getElementById('radio-volume').value);
+            radioAudio.addEventListener('error', function() {
+                document.getElementById('radio-now-playing').textContent = 'Error loading';
+                setRadioState(false);
+            });
+        }
+
+        if (radioPlaying) {
+            radioAudio.pause();
+            setRadioState(false);
+        } else {
+            document.getElementById('radio-now-playing').textContent = 'Loading...';
+            radioAudio.play().then(function() {
+                setRadioState(true);
+                document.getElementById('radio-now-playing').textContent = 'Live 🔴';
+            }).catch(function() {
+                document.getElementById('radio-now-playing').textContent = 'Error loading';
+                setRadioState(false);
+            });
+        }
+    }
+
+    function setRadioState(playing) {
+        radioPlaying = playing;
+        const btn = document.getElementById('radio-play-btn');
+        const bars = document.getElementById('radio-bars');
+        btn.textContent = playing ? '⏸' : '▶';
+        bars.classList.toggle('playing', playing);
+    }
+
+    function setRadioVolume(value) {
+        if (radioAudio) radioAudio.volume = parseFloat(value);
     }
 </script>
 

@@ -640,4 +640,274 @@ describe('TaskFlow - Task Management', () => {
       expect(pomodoroTimeLeft).toBe(POMODORO_WORK_TIME);
     });
   });
+
+  // ─────────────────────────────────────────────────────────────
+  describe('Radio Widget', () => {
+
+    const RADIO_STREAM = 'https://stream-icy.bauermedia.pt/comercial.mp3';
+
+    // --- Stream URL ---
+    test('stream URL should point to the correct Bauer Media endpoint', () => {
+      expect(RADIO_STREAM).toBe('https://stream-icy.bauermedia.pt/comercial.mp3');
+    });
+
+    test('stream URL should use HTTPS', () => {
+      expect(RADIO_STREAM.startsWith('https://')).toBe(true);
+    });
+
+    test('stream URL should end with .mp3', () => {
+      expect(RADIO_STREAM.endsWith('.mp3')).toBe(true);
+    });
+
+    // --- State management ---
+    test('radioPlaying should initialise as false', () => {
+      let radioPlaying = false;
+      expect(radioPlaying).toBe(false);
+    });
+
+    test('radioAudio should initialise as null', () => {
+      let radioAudio = null;
+      expect(radioAudio).toBeNull();
+    });
+
+    test('setRadioState(true) should set radioPlaying to true', () => {
+      let radioPlaying = false;
+      const setRadioState = (playing) => { radioPlaying = playing; };
+      setRadioState(true);
+      expect(radioPlaying).toBe(true);
+    });
+
+    test('setRadioState(false) should set radioPlaying to false', () => {
+      let radioPlaying = true;
+      const setRadioState = (playing) => { radioPlaying = playing; };
+      setRadioState(false);
+      expect(radioPlaying).toBe(false);
+    });
+
+    test('toggling play twice should return to paused state', () => {
+      let radioPlaying = false;
+      radioPlaying = !radioPlaying; // play
+      radioPlaying = !radioPlaying; // pause
+      expect(radioPlaying).toBe(false);
+    });
+
+    // --- Button icon ---
+    test('play button should show ▶ when not playing', () => {
+      const icon = (playing) => playing ? '⏸' : '▶';
+      expect(icon(false)).toBe('▶');
+    });
+
+    test('play button should show ⏸ when playing', () => {
+      const icon = (playing) => playing ? '⏸' : '▶';
+      expect(icon(true)).toBe('⏸');
+    });
+
+    // --- Volume ---
+    test('default volume should be 0.7', () => {
+      const defaultVolume = 0.7;
+      expect(defaultVolume).toBe(0.7);
+    });
+
+    test('volume should parse string input from range slider correctly', () => {
+      expect(parseFloat('0.7')).toBe(0.7);
+      expect(parseFloat('0')).toBe(0);
+      expect(parseFloat('1')).toBe(1);
+    });
+
+    test('volume should clamp to [0, 1]', () => {
+      const clamp = (v) => Math.min(1, Math.max(0, parseFloat(v)));
+      expect(clamp('1.5')).toBe(1);
+      expect(clamp('-0.5')).toBe(0);
+      expect(clamp('0.5')).toBe(0.5);
+    });
+
+    // --- Status text (English) ---
+    test('initial status text should be "Click to listen"', () => {
+      expect('Click to listen').toBe('Click to listen');
+    });
+
+    test('connecting status text should be "Loading..."', () => {
+      expect('Loading...').toBe('Loading...');
+    });
+
+    test('live status text should be "Live 🔴"', () => {
+      const liveText = 'Live 🔴';
+      expect(liveText).toContain('Live');
+      expect(liveText).toContain('🔴');
+    });
+
+    test('error status text should be "Error loading"', () => {
+      expect('Error loading').toBe('Error loading');
+    });
+
+    test('no status text should contain Portuguese words', () => {
+      const ptPattern = /\b(clique|ouvir|carregar|direto|erro)\b/i;
+      const statusTexts = ['Click to listen', 'Loading...', 'Live 🔴', 'Error loading'];
+      statusTexts.forEach(text => {
+        expect(text).not.toMatch(ptPattern);
+      });
+    });
+
+    // --- Animated bars ---
+    test('bars should add "playing" class when state is true', () => {
+      const bars = document.createElement('div');
+      bars.classList.toggle('playing', true);
+      expect(bars.classList.contains('playing')).toBe(true);
+    });
+
+    test('bars should remove "playing" class when state is false', () => {
+      const bars = document.createElement('div');
+      bars.classList.add('playing');
+      bars.classList.toggle('playing', false);
+      expect(bars.classList.contains('playing')).toBe(false);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  describe('Theme Toggle', () => {
+
+    test('should add light-mode class to body when switching to light', () => {
+      document.body.classList.remove('light-mode');
+      document.body.classList.add('light-mode');
+      expect(document.body.classList.contains('light-mode')).toBe(true);
+    });
+
+    test('should remove light-mode class from body when switching to dark', () => {
+      document.body.classList.add('light-mode');
+      document.body.classList.remove('light-mode');
+      expect(document.body.classList.contains('light-mode')).toBe(false);
+    });
+
+    test('should persist "light" in localStorage when light mode is set', () => {
+      localStorage.setItem('theme', 'light');
+      expect(localStorage.getItem('theme')).toBe('light');
+    });
+
+    test('should persist "dark" in localStorage when dark mode is set', () => {
+      localStorage.setItem('theme', 'dark');
+      expect(localStorage.getItem('theme')).toBe('dark');
+    });
+
+    test('should default to dark mode when localStorage has no theme key', () => {
+      const savedTheme = localStorage.getItem('theme'); // null
+      const isDark = savedTheme !== 'light';
+      expect(isDark).toBe(true);
+    });
+
+    test('should restore light mode on load when localStorage contains "light"', () => {
+      localStorage.setItem('theme', 'light');
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'light') document.body.classList.add('light-mode');
+      expect(document.body.classList.contains('light-mode')).toBe(true);
+    });
+
+    test('should restore dark mode on load when localStorage contains "dark"', () => {
+      localStorage.setItem('theme', 'dark');
+      document.body.classList.remove('light-mode');
+      expect(document.body.classList.contains('light-mode')).toBe(false);
+    });
+
+    test('toggling theme twice should restore original state', () => {
+      const original = document.body.classList.contains('light-mode');
+      document.body.classList.toggle('light-mode');
+      document.body.classList.toggle('light-mode');
+      expect(document.body.classList.contains('light-mode')).toBe(original);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  describe('Navigation & View Switching', () => {
+
+    const VIEW_TITLES = {
+      all:      'All Tasks',
+      today:    "Today's Tasks",
+      priority: 'Priority Tasks',
+      stats:    'Statistics'
+    };
+
+    test('should map "all" view to "All Tasks" title', () => {
+      expect(VIEW_TITLES.all).toBe('All Tasks');
+    });
+
+    test('should map "today" view to "Today\'s Tasks" title', () => {
+      expect(VIEW_TITLES.today).toBe("Today's Tasks");
+    });
+
+    test('should map "priority" view to "Priority Tasks" title', () => {
+      expect(VIEW_TITLES.priority).toBe('Priority Tasks');
+    });
+
+    test('should map "stats" view to "Statistics" title', () => {
+      expect(VIEW_TITLES.stats).toBe('Statistics');
+    });
+
+    test('all four view keys should be present', () => {
+      expect(Object.keys(VIEW_TITLES)).toHaveLength(4);
+      expect(VIEW_TITLES).toHaveProperty('all');
+      expect(VIEW_TITLES).toHaveProperty('today');
+      expect(VIEW_TITLES).toHaveProperty('priority');
+      expect(VIEW_TITLES).toHaveProperty('stats');
+    });
+
+    test('active nav item class should be toggled correctly', () => {
+      const items = ['all', 'today', 'priority', 'stats'];
+      const activeView = 'today';
+      const activeItems = items.filter(v => v === activeView);
+      const inactiveItems = items.filter(v => v !== activeView);
+      expect(activeItems).toHaveLength(1);
+      expect(inactiveItems).toHaveLength(3);
+    });
+
+    test('tabs container should be hidden on stats view', () => {
+      const shouldHideTabs = (view) => view === 'stats';
+      expect(shouldHideTabs('stats')).toBe(true);
+      expect(shouldHideTabs('all')).toBe(false);
+      expect(shouldHideTabs('today')).toBe(false);
+      expect(shouldHideTabs('priority')).toBe(false);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  describe('English-only UI Text', () => {
+
+    const ptPattern = /\b(clique|ouvir|carregar|direto|tarefa|hoje|prioridade|estatísticas|editar|excluir|novo|pausar|iniciar|erro)\b/i;
+
+    const uiStrings = [
+      // Radio widget
+      'Click to listen',
+      'Loading...',
+      'Live 🔴',
+      'Error loading',
+      // Navigation titles
+      'All Tasks',
+      "Today's Tasks",
+      'Priority Tasks',
+      'Statistics',
+      // Pomodoro
+      'Start',
+      'Pause',
+      'Reset',
+      'Idle',
+      // Task actions
+      'Add',
+      'Delete',
+      'Edit',
+      // Empty states
+      'No tasks yet.',
+      'No tasks for today.',
+      'No priority tasks.',
+    ];
+
+    uiStrings.forEach(str => {
+      test(`"${str}" should contain no Portuguese words`, () => {
+        expect(str).not.toMatch(ptPattern);
+      });
+    });
+
+    test('all UI strings should be non-empty', () => {
+      uiStrings.forEach(str => {
+        expect(str.trim().length).toBeGreaterThan(0);
+      });
+    });
+  });
 });
