@@ -1001,6 +1001,44 @@
         .radio-widget {
             display: none;
         }
+
+        /* Larger touch targets */
+        .task-btn {
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
+        }
+
+        .task-checkbox {
+            width: 28px;
+            height: 28px;
+        }
+
+        /* Header wraps so search bar doesn't overflow narrow screens */
+        .header {
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .header-left {
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* Slightly smaller page title on mobile */
+        #view-title {
+            font-size: 22px;
+        }
+
+        /* Stat values are 56px on desktop — reduce for mobile */
+        .stat-value {
+            font-size: 38px;
+        }
+
+        /* Toast clears iOS home indicator safe area */
+        .toast {
+            bottom: max(20px, env(safe-area-inset-bottom, 20px));
+        }
     }
 
     /* RADIO WIDGET */
@@ -1270,7 +1308,18 @@
     .pomodoro-settings-btn:hover { opacity: 1; }
 
     @media (max-width: 768px) {
-        .header-search { max-width: 100%; margin-top: 8px; }
+        .header-search {
+            max-width: 100%;
+            flex-basis: 100%;  /* forces its own row when header wraps */
+            order: 3;          /* appears after the title/hamburger row */
+            margin-top: 0;     /* gap on .header handles spacing */
+        }
+    }
+
+    /* TOUCH DEVICES — show action buttons without hover */
+    @media (hover: none) {
+        .task-actions  { opacity: 1; }
+        .list-actions  { opacity: 1; }
     }
 </style>
 
