@@ -1109,6 +1109,169 @@
         0%, 100% { height: 4px; }
         50% { height: 16px; }
     }
+
+    /* SEARCH BAR */
+    .header-search {
+        display: flex;
+        align-items: center;
+        position: relative;
+        flex: 1;
+        max-width: 300px;
+    }
+
+    .search-input {
+        width: 100%;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: 24px;
+        padding: 8px 36px 8px 16px;
+        color: var(--text-primary);
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.2s, background 0.3s ease;
+    }
+
+    .search-input:focus { border-color: var(--accent-green); }
+    .search-input::placeholder { color: var(--text-tertiary); }
+
+    .search-clear-btn {
+        position: absolute;
+        right: 10px;
+        background: none;
+        border: none;
+        color: var(--text-tertiary);
+        cursor: pointer;
+        font-size: 14px;
+        padding: 4px;
+        line-height: 1;
+    }
+
+    .search-clear-btn:hover { color: var(--text-primary); }
+    .header-search.hidden { visibility: hidden; pointer-events: none; }
+
+    /* DUE DATES */
+    .task-meta {
+        font-size: 12px;
+        margin-top: 3px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .task-due-date {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        color: var(--text-secondary);
+    }
+
+    .task-due-date.due-today  { color: var(--accent-orange); font-weight: 600; }
+    .task-due-date.overdue    { color: var(--accent-red);    font-weight: 600; }
+
+    .task.has-overdue-date {
+        border-left: 3px solid var(--accent-red);
+    }
+
+    .date-btn {
+        background: var(--bg-tertiary);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+    }
+
+    .date-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .date-btn.active { color: var(--accent-orange); border-color: var(--accent-orange); }
+
+    /* EXPORT / IMPORT */
+    .data-section {
+        margin-top: 24px;
+        padding: 20px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+    }
+
+    .data-section h2 {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 12px;
+    }
+
+    .data-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+    }
+
+    .data-btn {
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: background 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .data-btn:hover { background: var(--bg-hover); }
+    .data-hint { font-size: 12px; color: var(--text-tertiary); line-height: 1.5; }
+
+    /* POMODORO CUSTOM SETTINGS */
+    .pomodoro-settings {
+        padding: 8px 0 2px;
+        border-top: 1px solid var(--border-color);
+        margin-top: 8px;
+    }
+
+    .pomo-setting-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-bottom: 6px;
+    }
+
+    .pomo-setting-row label { width: 36px; }
+
+    .pomo-setting-row input {
+        width: 48px;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        padding: 3px 6px;
+        color: var(--text-primary);
+        font-size: 12px;
+        text-align: center;
+        outline: none;
+    }
+
+    .pomo-setting-row input:focus { border-color: var(--accent-green); }
+
+    .pomodoro-settings-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        opacity: 0.5;
+        display: block;
+        margin: 4px auto 0;
+        transition: opacity 0.2s;
+    }
+
+    .pomodoro-settings-btn:hover { opacity: 1; }
+
+    @media (max-width: 768px) {
+        .header-search { max-width: 100%; margin-top: 8px; }
+    }
 </style>
 
 </head>
@@ -1128,7 +1291,7 @@
             </div>
 
         <div class="nav-section">
-            <div class="nav-title">Menu</div>
+            <h2 class="nav-title">Menu</h2>
             <div class="nav-item active" data-view="all" role="button" tabindex="0" aria-label="All tasks">
                 <span class="nav-icon">📋</span>
                 <span>All Tasks</span>
@@ -1151,7 +1314,7 @@
         </div>
 
         <div class="nav-section">
-            <div class="nav-title">Lists</div>
+            <h2 class="nav-title">Lists</h2>
             <div id="lists-container"></div>
             <button class="add-list-btn" onclick="addNewList()" aria-label="Add new list">➕ New List</button>
         </div>
@@ -1173,6 +1336,21 @@
                     <span id="status-pomodoro" style="font-size: 10px; opacity: 0.7;">Idle</span><br>
                     Today: <span class="pomodoro-count" id="pomodoro-today">0</span> 🍅
                 </div>
+                <!-- CUSTOM DURATIONS -->
+                <div class="pomodoro-settings" id="pomodoro-settings" style="display:none">
+                    <div class="pomo-setting-row">
+                        <label for="pomo-work-input">Work</label>
+                        <input type="number" id="pomo-work-input" min="1" max="60" value="25" aria-label="Work duration in minutes">
+                        <span>min</span>
+                    </div>
+                    <div class="pomo-setting-row">
+                        <label for="pomo-break-input">Break</label>
+                        <input type="number" id="pomo-break-input" min="1" max="30" value="5" aria-label="Break duration in minutes">
+                        <span>min</span>
+                    </div>
+                    <button class="pomodoro-btn" style="width:100%" onclick="applyPomodoroSettings()">Apply</button>
+                </div>
+                <button class="pomodoro-settings-btn" onclick="togglePomodoroSettings()" aria-label="Pomodoro duration settings" title="Customize durations">⚙️</button>
             </div>
         </div>
     </div>
@@ -1185,6 +1363,16 @@
                 <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Open navigation menu" aria-expanded="false">☰</button>
                 <h1 id="view-title">All Tasks</h1>
                 <div class="header-subtitle" id="view-subtitle"></div>
+            </div>
+            <!-- SEARCH BAR -->
+            <div class="header-search" id="header-search">
+                <input type="text" id="search-input" class="search-input"
+                       placeholder="🔍 Search tasks…"
+                       oninput="handleSearch(this.value)"
+                       aria-label="Search tasks">
+                <button class="search-clear-btn" id="search-clear-btn"
+                        onclick="clearSearch()" style="display:none"
+                        aria-label="Clear search">✕</button>
             </div>
             <!-- RADIO WIDGET -->
             <div class="radio-widget" id="radio-widget">
@@ -1265,8 +1453,20 @@
                     <div class="stat-card">
                         <div class="stat-label">Pending</div>
                         <div class="stat-value" id="stat-pending">0</div>
-                        <div class="stat-description">Still to do</div>
+                        <div class="stat-description">Still to do (<span id="stat-overdue">0</span> overdue)</div>
                     </div>
+                </div>
+                <!-- DATA MANAGEMENT -->
+                <div class="data-section">
+                    <h2>Data Management</h2>
+                    <div class="data-actions">
+                        <button class="data-btn" onclick="exportData()">⬇️ Export JSON</button>
+                        <label class="data-btn" style="cursor:pointer">
+                            ⬆️ Import JSON
+                            <input type="file" id="import-file" accept=".json" onchange="importData(this)" style="display:none" aria-label="Import JSON file">
+                        </label>
+                    </div>
+                    <p class="data-hint">Export saves all lists and tasks as a JSON file. Import replaces all current data.</p>
                 </div>
             </div>
         </div>
@@ -1312,6 +1512,7 @@
     let currentListId = 1;
     let currentView = 'all';
     let editingTaskId = null;
+    let searchQuery = '';
 
     // THEME
     function toggleTheme() {
@@ -1460,12 +1661,20 @@
     }
 
     function promptSubmit() {
-        const value = document.getElementById('prompt-input').value.trim();
+        const input = document.getElementById('prompt-input');
+        const isDate = input.type === 'date';
+        const value = input.value.trim();
         document.getElementById('prompt-overlay').style.display = 'none';
-        if (_promptCallback && value) {
+        if (_promptCallback && (isDate || value)) {
             const cb = _promptCallback;
             _promptCallback = null;
+            if (isDate) input.type = 'text';
             cb(value);
+        } else if (isDate) {
+            input.type = 'text';
+            _promptCallback = null;
+        } else {
+            _promptCallback = null;
         }
     }
 
@@ -1539,6 +1748,10 @@
         } else {
             tabsContainer.style.display = 'flex';
         }
+
+        // Toggle search bar visibility (hidden on stats view)
+        const searchBar = document.getElementById('header-search');
+        if (searchBar) searchBar.classList.toggle('hidden', view === 'stats');
 
         // Switch tab
         switchTab(view);
@@ -1687,6 +1900,7 @@
                 completed: false,
                 priority: false,
                 today: false,
+                dueDate: null,
                 createdAt: new Date().toISOString()
             };
             list.tasks.push(newTask);
@@ -1714,9 +1928,16 @@
         
         // Filter
         if (view === 'today') {
-            tasks = tasks.filter(t => t.today && !t.completed);
+            const todayStr = getTodayStr();
+            tasks = tasks.filter(t => (t.today || t.dueDate === todayStr) && !t.completed);
         } else if (view === 'priority') {
             tasks = tasks.filter(t => t.priority && !t.completed);
+        }
+
+        // Search filter
+        if (searchQuery) {
+            tasks = tasks.filter(t => t.text.toLowerCase().includes(searchQuery) ||
+                                      (t.dueDate && t.dueDate.includes(searchQuery)));
         }
         
         // Sort
@@ -1743,8 +1964,9 @@
         }
 
         container.innerHTML = tasks.map(task => {
-            const taskClass = `task ${task.completed ? 'completed' : ''} ${task.priority ? 'priority' : ''} ${task.today ? 'today' : ''}`;
+            const taskClass = `task ${task.completed ? 'completed' : ''} ${task.priority ? 'priority' : ''} ${task.today ? 'today' : ''} ${isDueOverdue(task) ? 'has-overdue-date' : ''}`.replace(/\s+/g, ' ').trim();
             const checkboxLabel = task.completed ? 'Mark as incomplete' : 'Mark as complete';
+            const dueDateHtml = task.dueDate ? `<div class="task-meta"><span class="task-due-date ${isDueOverdue(task) ? 'overdue' : isDueToday(task) ? 'due-today' : ''}">📅 ${formatDueDate(task.dueDate)}</span></div>` : '';
 
             if (editingTaskId === task.id) {
                 return `
@@ -1779,6 +2001,7 @@
                             onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleTask(${task.id});}"></div>
                         <div class="task-content" onclick="toggleTask(${task.id})">
                             <div class="task-text">${escapeHtml(task.text)}</div>
+                            ${dueDateHtml}
                         </div>
                         <div class="task-badges">
                             ${task.priority ? '<span class="task-badge" aria-label="Priority">⭐</span>' : ''}
@@ -1787,6 +2010,7 @@
                         <div class="task-actions">
                             <button class="task-btn priority-btn ${task.priority ? 'active' : ''}" onclick="togglePriority(${task.id})" title="Priority" aria-label="${task.priority ? 'Remove priority' : 'Set as priority'}">⭐</button>
                             <button class="task-btn today-btn ${task.today ? 'active' : ''}" onclick="toggleToday(${task.id})" title="Today" aria-label="${task.today ? 'Remove from today' : 'Add to today'}">⚡</button>
+                            <button class="task-btn date-btn ${task.dueDate ? 'active' : ''}" onclick="openDatePicker(${task.id})" title="Set due date" aria-label="${task.dueDate ? 'Change due date' : 'Set due date'}">📅</button>
                             <button class="task-btn edit-btn" onclick="editTask(${task.id})" title="Edit" aria-label="Edit task">✏️</button>
                             <button class="task-btn delete-btn" onclick="deleteTask(${task.id})" title="Delete" aria-label="Delete task">🗑️</button>
                         </div>
@@ -1797,9 +2021,9 @@
     }
 
     function renderAllViews() {
-        renderTasks('all');
-        renderTasks('today');
-        renderTasks('priority');
+        if (currentView === 'all')           renderTasks('all');
+        else if (currentView === 'today')    renderTasks('today');
+        else if (currentView === 'priority') renderTasks('priority');
         updateDetailedStats();
         updateClearCompletedBtn();
     }
@@ -1906,12 +2130,17 @@
         const pending = total - completed;
         const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
+        const todayStr = getTodayStr();
+        const overdue = allTasks.filter(t => t.dueDate && t.dueDate < todayStr && !t.completed).length;
+
         document.getElementById('stat-total').textContent = total;
         document.getElementById('stat-completed').textContent = completed;
         document.getElementById('stat-priority').textContent = priority;
         document.getElementById('stat-today').textContent = today;
         document.getElementById('stat-pending').textContent = pending;
         document.getElementById('stat-rate').textContent = rate + '%';
+        const overdueEl = document.getElementById('stat-overdue');
+        if (overdueEl) overdueEl.textContent = overdue;
     }
 
     // SAVE
@@ -1941,13 +2170,13 @@
     }
 
     // POMODORO TIMER - DEBUG-TESTED CODE
+    let pomodoroWorkMins  = parseInt(localStorage.getItem('pomodoroWorkMins')  || '25', 10);
+    let pomodoroBreakMins = parseInt(localStorage.getItem('pomodoroBreakMins') || '5',  10);
     let pomodoroInterval = null;
-    let pomodoroTimeLeft = 25 * 60;
-    let pomodoroTotalTime = 25 * 60;
+    let pomodoroTimeLeft = pomodoroWorkMins * 60;
+    let pomodoroTotalTime = pomodoroWorkMins * 60;
     let pomodoroIsBreak = false;
     let pomodoroIsRunning = false;
-    const POMODORO_WORK_TIME = 25 * 60;
-    const POMODORO_BREAK_TIME = 5 * 60;
 
     function loadPomodoroData() {
         const todayElement = document.getElementById('pomodoro-today');
@@ -2023,8 +2252,8 @@
 
     function resetPomodoro() {
         pausePomodoro();
-        pomodoroTimeLeft = POMODORO_WORK_TIME;
-        pomodoroTotalTime = POMODORO_WORK_TIME;
+        pomodoroTimeLeft = pomodoroWorkMins * 60;
+        pomodoroTotalTime = pomodoroWorkMins * 60;
         pomodoroIsBreak = false;
         const statusEl = document.getElementById('pomodoro-status');
         if (statusEl) statusEl.textContent = '🍅 POMODORO';
@@ -2072,14 +2301,14 @@
         if (!pomodoroIsBreak) {
             incrementPomodoroCount();
             pomodoroIsBreak = true;
-            pomodoroTimeLeft = POMODORO_BREAK_TIME;
-            pomodoroTotalTime = POMODORO_BREAK_TIME;
+            pomodoroTimeLeft = pomodoroBreakMins * 60;
+            pomodoroTotalTime = pomodoroBreakMins * 60;
             const statusEl = document.getElementById('pomodoro-status');
             if (statusEl) statusEl.textContent = '🍅 BREAK TIME';
         } else {
             pomodoroIsBreak = false;
-            pomodoroTimeLeft = POMODORO_WORK_TIME;
-            pomodoroTotalTime = POMODORO_WORK_TIME;
+            pomodoroTimeLeft = pomodoroWorkMins * 60;
+            pomodoroTotalTime = pomodoroWorkMins * 60;
             const statusEl = document.getElementById('pomodoro-status');
             if (statusEl) statusEl.textContent = '🍅 POMODORO';
         }
@@ -2112,6 +2341,158 @@
         init();
         loadPomodoroData();
     }
+
+    // SEARCH / FILTER
+    function handleSearch(query) {
+        searchQuery = query.trim().toLowerCase();
+        document.getElementById('search-clear-btn').style.display = searchQuery ? 'inline' : 'none';
+        renderAllViews();
+    }
+
+    function clearSearch() {
+        searchQuery = '';
+        const input = document.getElementById('search-input');
+        if (input) input.value = '';
+        document.getElementById('search-clear-btn').style.display = 'none';
+        renderAllViews();
+    }
+
+    // DUE DATE HELPERS
+    function getTodayStr() {
+        return new Date().toISOString().split('T')[0];
+    }
+
+    function isDueOverdue(task) {
+        if (!task.dueDate || task.completed) return false;
+        return task.dueDate < getTodayStr();
+    }
+
+    function isDueToday(task) {
+        if (!task.dueDate || task.completed) return false;
+        return task.dueDate === getTodayStr();
+    }
+
+    function formatDueDate(dueDate) {
+        if (!dueDate) return '';
+        const today = getTodayStr();
+        if (dueDate === today) return 'Today';
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        if (dueDate === tomorrow.toISOString().split('T')[0]) return 'Tomorrow';
+        const d = new Date(dueDate + 'T00:00:00');
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    function openDatePicker(taskId) {
+        const list = lists.find(l => l.id === currentListId);
+        if (!list) return;
+        const task = list.tasks.find(t => t.id === taskId);
+        if (!task) return;
+        document.getElementById('prompt-message').textContent = 'Set due date (clear to remove):';
+        const input = document.getElementById('prompt-input');
+        input.type = 'date';
+        input.value = task.dueDate || '';
+        document.getElementById('prompt-overlay').style.display = 'flex';
+        setTimeout(function() { input.focus(); }, 50);
+        _promptCallback = function(value) {
+            task.dueDate = value || null;
+            input.type = 'text';
+            saveLists();
+            renderAllViews();
+        };
+    }
+
+    // EXPORT / IMPORT
+    function exportData() {
+        const data = JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), lists: lists }, null, 2);
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'taskflow-' + getTodayStr() + '.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function importData(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const parsed = JSON.parse(e.target.result);
+                const imported = Array.isArray(parsed) ? parsed : (parsed.lists || null);
+                if (!imported || !Array.isArray(imported)) throw new Error('Invalid format');
+                showConfirm('Replace all current data with the imported file?', function() {
+                    lists = imported;
+                    currentListId = lists[0] ? lists[0].id : 1;
+                    editingTaskId = null;
+                    saveLists();
+                    renderLists();
+                    renderAllViews();
+                    updateAllStats();
+                }, 'Import');
+            } catch(err) {
+                showAlert('Invalid file. Please use a file exported from TaskFlow.');
+            }
+        };
+        reader.readAsText(file);
+        input.value = '';
+    }
+
+    // CUSTOM POMODORO DURATIONS
+    function togglePomodoroSettings() {
+        if (pomodoroIsRunning) return;
+        const settings = document.getElementById('pomodoro-settings');
+        if (!settings) return;
+        const visible = settings.style.display !== 'none';
+        settings.style.display = visible ? 'none' : 'block';
+        if (!visible) {
+            document.getElementById('pomo-work-input').value = pomodoroWorkMins;
+            document.getElementById('pomo-break-input').value = pomodoroBreakMins;
+        }
+    }
+
+    function applyPomodoroSettings() {
+        const work = Math.max(1, Math.min(60, parseInt(document.getElementById('pomo-work-input').value)  || 25));
+        const brk  = Math.max(1, Math.min(30, parseInt(document.getElementById('pomo-break-input').value) || 5));
+        pomodoroWorkMins  = work;
+        pomodoroBreakMins = brk;
+        localStorage.setItem('pomodoroWorkMins', work);
+        localStorage.setItem('pomodoroBreakMins', brk);
+        document.getElementById('pomodoro-settings').style.display = 'none';
+        resetPomodoro();
+    }
+
+    // KEYBOARD SHORTCUTS
+    document.addEventListener('keydown', function(e) {
+        const inInput = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
+        // Escape: close modals / clear search focus
+        if (e.key === 'Escape') {
+            if (document.getElementById('prompt-overlay').style.display !== 'none') promptCancel();
+            else if (document.getElementById('modal-overlay').style.display !== 'none') modalCancel();
+            else closeSidebar();
+            return;
+        }
+        if (inInput) return;
+        // Ctrl/Cmd+N: focus task input
+        if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+            e.preventDefault();
+            if (currentView !== 'all') switchView('all');
+            setTimeout(function() {
+                const inp = document.getElementById('task-input');
+                if (inp) inp.focus();
+            }, currentView !== 'all' ? 50 : 0);
+        }
+        // Ctrl/Cmd+K or Ctrl+/: focus search
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === '/')) {
+            e.preventDefault();
+            const inp = document.getElementById('search-input');
+            if (inp) inp.focus();
+        }
+    });
 
     // RADIO COMERCIAL
     const RADIO_STREAM = 'https://stream-icy.bauermedia.pt/comercial.mp3';

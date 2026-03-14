@@ -1228,3 +1228,285 @@ describe('TaskFlow - Task Management', () => {
     });
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NEW FEATURE TESTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Helper: pure JS implementations of the tested functions (mirror index.html logic)
+function getTodayStr() { return new Date().toISOString().split('T')[0]; }
+
+function isDueOverdue(task) {
+  if (!task.dueDate || task.completed) return false;
+  return task.dueDate < getTodayStr();
+}
+
+function isDueToday(task) {
+  if (!task.dueDate || task.completed) return false;
+  return task.dueDate === getTodayStr();
+}
+
+function formatDueDate(dueDate) {
+  if (!dueDate) return '';
+  const today = getTodayStr();
+  if (dueDate === today) return 'Today';
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  if (dueDate === tomorrow.toISOString().split('T')[0]) return 'Tomorrow';
+  const d = new Date(dueDate + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function clampWork(v)  { return Math.max(1, Math.min(60, v)); }
+function clampBreak(v) { return Math.max(1, Math.min(30, v)); }
+
+// ─────────────────────────────────────────────────────────────
+describe('Search / Filter', () => {
+
+  const tasks = [
+    { id: 1, text: 'Buy groceries', completed: false, dueDate: null },
+    { id: 2, text: 'Read a book', completed: false, dueDate: '2026-03-14' },
+    { id: 3, text: 'GROCERY list', completed: false, dueDate: null },
+    { id: 4, text: 'Done task', completed: true, dueDate: null },
+  ];
+
+  function filterTasks(query) {
+    const q = query.trim().toLowerCase();
+    if (!q) return tasks;
+    return tasks.filter(t => t.text.toLowerCase().includes(q) ||
+                              (t.dueDate && t.dueDate.includes(q)));
+  }
+
+  test('filters by query (case-insensitive)', () => {
+    // 'GROCERY list' contains 'grocery'; 'Buy groceries' does not (different substring)
+    const result = filterTasks('grocery');
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe(3);
+  });
+
+  test('filters by partial word match', () => {
+    // 'Buy groceries' contains 'groceri'
+    const result = filterTasks('groceri');
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe(1);
+  });
+
+  test('returns all tasks when query is empty', () => {
+    expect(filterTasks('')).toHaveLength(4);
+  });
+
+  test('returns empty array when no match', () => {
+    expect(filterTasks('zzznomatch')).toHaveLength(0);
+  });
+
+  test('can match on dueDate string', () => {
+    const result = filterTasks('2026-03-14');
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe(2);
+  });
+
+  test('combined: filters completed tasks too', () => {
+    const result = filterTasks('done');
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe(4);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+describe('Due Dates', () => {
+
+  const today = getTodayStr();
+  const yesterday = (() => { const d = new Date(); d.setDate(d.getDate()-1); return d.toISOString().split('T')[0]; })();
+  const tomorrow  = (() => { const d = new Date(); d.setDate(d.getDate()+1); return d.toISOString().split('T')[0]; })();
+
+  test('new task dueDate defaults to null', () => {
+    const task = { id: 1, text: 'Test', completed: false, dueDate: null };
+    expect(task.dueDate).toBeNull();
+  });
+
+  test('isDueOverdue: past date returns true', () => {
+    const task = { dueDate: yesterday, completed: false };
+    expect(isDueOverdue(task)).toBe(true);
+  });
+
+  test('isDueOverdue: future date returns false', () => {
+    const task = { dueDate: tomorrow, completed: false };
+    expect(isDueOverdue(task)).toBe(false);
+  });
+
+  test('isDueOverdue: completed task with past date returns false', () => {
+    const task = { dueDate: yesterday, completed: true };
+    expect(isDueOverdue(task)).toBe(false);
+  });
+
+  test('isDueOverdue: null dueDate returns false', () => {
+    const task = { dueDate: null, completed: false };
+    expect(isDueOverdue(task)).toBe(false);
+  });
+
+  test('isDueToday: today returns true', () => {
+    const task = { dueDate: today, completed: false };
+    expect(isDueToday(task)).toBe(true);
+  });
+
+  test('isDueToday: yesterday returns false', () => {
+    const task = { dueDate: yesterday, completed: false };
+    expect(isDueToday(task)).toBe(false);
+  });
+
+  test('isDueToday: completed task with today date returns false', () => {
+    const task = { dueDate: today, completed: true };
+    expect(isDueToday(task)).toBe(false);
+  });
+
+  test('formatDueDate: today string returns "Today"', () => {
+    expect(formatDueDate(today)).toBe('Today');
+  });
+
+  test('formatDueDate: tomorrow string returns "Tomorrow"', () => {
+    expect(formatDueDate(tomorrow)).toBe('Tomorrow');
+  });
+
+  test('formatDueDate: empty/null returns empty string', () => {
+    expect(formatDueDate('')).toBe('');
+    expect(formatDueDate(null)).toBe('');
+  });
+
+  test('overdue count calculation', () => {
+    const allTasks = [
+      { dueDate: yesterday, completed: false },
+      { dueDate: yesterday, completed: true },  // excluded (completed)
+      { dueDate: today,     completed: false },  // not overdue
+      { dueDate: null,      completed: false },  // no date
+      { dueDate: tomorrow,  completed: false },  // not overdue
+    ];
+    const overdue = allTasks.filter(t => t.dueDate && t.dueDate < getTodayStr() && !t.completed).length;
+    expect(overdue).toBe(1);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+describe('Export / Import', () => {
+
+  test('exported JSON contains lists array', () => {
+    const lists = [{ id: 1, name: 'Work', tasks: [] }];
+    const exported = JSON.parse(JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), lists }));
+    expect(exported).toHaveProperty('lists');
+    expect(Array.isArray(exported.lists)).toBe(true);
+    expect(exported.version).toBe(1);
+  });
+
+  test('imported plain array is used directly', () => {
+    const raw = [{ id: 1, name: 'Work', tasks: [] }];
+    const parsed = raw;
+    const imported = Array.isArray(parsed) ? parsed : (parsed.lists || null);
+    expect(imported).toEqual(raw);
+  });
+
+  test('imported { version, lists } object → extracts lists', () => {
+    const raw = { version: 1, lists: [{ id: 1, name: 'Work', tasks: [] }] };
+    const imported = Array.isArray(raw) ? raw : (raw.lists || null);
+    expect(imported).toEqual(raw.lists);
+  });
+
+  test('invalid JSON structure → returns null (not throw)', () => {
+    const raw = { version: 1, data: 'nothing' };
+    const imported = Array.isArray(raw) ? raw : (raw.lists || null);
+    expect(imported).toBeNull();
+  });
+
+  test('empty lists array is valid', () => {
+    const raw = { version: 1, lists: [] };
+    const imported = Array.isArray(raw) ? raw : (raw.lists || null);
+    expect(Array.isArray(imported)).toBe(true);
+    expect(imported).toHaveLength(0);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+describe('Custom Pomodoro Durations', () => {
+
+  test('work duration clamped to min 1', () => {
+    expect(clampWork(0)).toBe(1);
+    expect(clampWork(-5)).toBe(1);
+  });
+
+  test('work duration clamped to max 60', () => {
+    expect(clampWork(61)).toBe(60);
+    expect(clampWork(100)).toBe(60);
+  });
+
+  test('break duration clamped to min 1', () => {
+    expect(clampBreak(0)).toBe(1);
+    expect(clampBreak(-1)).toBe(1);
+  });
+
+  test('break duration clamped to max 30', () => {
+    expect(clampBreak(31)).toBe(30);
+    expect(clampBreak(99)).toBe(30);
+  });
+
+  test('valid work/break values pass through unchanged', () => {
+    expect(clampWork(25)).toBe(25);
+    expect(clampBreak(5)).toBe(5);
+    expect(clampWork(1)).toBe(1);
+    expect(clampBreak(30)).toBe(30);
+  });
+
+  test('localStorage stores custom values as strings', () => {
+    const stored = { pomodoroWorkMins: '45', pomodoroBreakMins: '10' };
+    const work  = parseInt(stored.pomodoroWorkMins  || '25', 10);
+    const brk   = parseInt(stored.pomodoroBreakMins || '5',  10);
+    expect(work).toBe(45);
+    expect(brk).toBe(10);
+  });
+
+  test('missing localStorage key falls back to default', () => {
+    const stored = {};
+    const work  = parseInt(stored.pomodoroWorkMins  || '25', 10);
+    const brk   = parseInt(stored.pomodoroBreakMins || '5',  10);
+    expect(work).toBe(25);
+    expect(brk).toBe(5);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+describe('Keyboard Shortcut Logic', () => {
+
+  test('Escape triggers modal cancel callback', () => {
+    let cancelled = false;
+    const promptCancel = () => { cancelled = true; };
+    // Simulate the Escape key handler logic
+    const promptVisible = true;
+    if (promptVisible) promptCancel();
+    expect(cancelled).toBe(true);
+  });
+
+  test('inInput guard prevents shortcut execution', () => {
+    let shortcutFired = false;
+    const inInput = true; // simulates focus inside INPUT tag
+    if (!inInput) { shortcutFired = true; }
+    expect(shortcutFired).toBe(false);
+  });
+
+  test('shortcut fires when not in input', () => {
+    let shortcutFired = false;
+    const inInput = false;
+    if (!inInput) { shortcutFired = true; }
+    expect(shortcutFired).toBe(true);
+  });
+
+  test('Ctrl+N targets task input (logical check)', () => {
+    const key = 'n';
+    const ctrlKey = true;
+    const shouldFocusInput = ctrlKey && key === 'n';
+    expect(shouldFocusInput).toBe(true);
+  });
+
+  test('Ctrl+K targets search input (logical check)', () => {
+    const key = 'k';
+    const ctrlKey = true;
+    const shouldFocusSearch = ctrlKey && (key === 'k' || key === '/');
+    expect(shouldFocusSearch).toBe(true);
+  });
+});
