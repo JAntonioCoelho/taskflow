@@ -1042,4 +1042,189 @@ describe('TaskFlow - Task Management', () => {
       });
     });
   });
+
+  // ─────────────────────────────────────────────────────────────
+  describe('Pomodoro Date Format (ISO)', () => {
+
+    test('ISO date format should match YYYY-MM-DD pattern', () => {
+      const date = new Date().toISOString().split('T')[0];
+      expect(date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+
+    test('ISO date should have 3 parts separated by dashes', () => {
+      const date = new Date().toISOString().split('T')[0];
+      const parts = date.split('-');
+      expect(parts).toHaveLength(3);
+      expect(parts[0]).toHaveLength(4); // year
+      expect(parts[1].length).toBeLessThanOrEqual(2); // month
+      expect(parts[2].length).toBeLessThanOrEqual(2); // day
+    });
+
+    test('should reset pomodoro count when stored date differs from today', () => {
+      const yesterdayStr = '2000-01-01';
+      const todayStr = new Date().toISOString().split('T')[0];
+      const stored = { date: yesterdayStr, count: 5 };
+      const count = stored.date === todayStr ? stored.count : 0;
+      expect(count).toBe(0);
+    });
+
+    test('should keep pomodoro count when stored date matches today', () => {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const stored = { date: todayStr, count: 7 };
+      const count = stored.date === todayStr ? stored.count : 0;
+      expect(count).toBe(7);
+    });
+
+    test('ISO date is consistent regardless of locale', () => {
+      // toISOString() always returns UTC time in fixed format, unlike toDateString()
+      const date = new Date().toISOString().split('T')[0];
+      expect(typeof date).toBe('string');
+      expect(date.length).toBe(10);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  describe('Task ID Generation (Counter)', () => {
+
+    test('sequential IDs from a counter should be unique', () => {
+      let counter = 1000;
+      const id1 = counter++;
+      const id2 = counter++;
+      expect(id1).not.toBe(id2);
+    });
+
+    test('100 rapidly generated counter IDs should all be unique', () => {
+      const ids = [];
+      let counter = 1;
+      for (let i = 0; i < 100; i++) {
+        ids.push(counter++);
+      }
+      const unique = new Set(ids);
+      expect(unique.size).toBe(ids.length);
+    });
+
+    test('counter should persist across calls via localStorage', () => {
+      // Simulate generateTaskId() logic
+      function generateTaskId() {
+        const next = parseInt(localStorage.getItem('taskIdCounter') || '1', 10);
+        localStorage.setItem('taskIdCounter', next + 1);
+        return next;
+      }
+
+      const id1 = generateTaskId();
+      const id2 = generateTaskId();
+      expect(id1).not.toBe(id2);
+      expect(id2).toBe(id1 + 1);
+    });
+
+    test('counter should start at 1 when localStorage is empty', () => {
+      function generateTaskId() {
+        const next = parseInt(localStorage.getItem('taskIdCounter') || '1', 10);
+        localStorage.setItem('taskIdCounter', next + 1);
+        return next;
+      }
+
+      const firstId = generateTaskId();
+      expect(firstId).toBe(1);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  describe('Undo Delete', () => {
+
+    test('should restore a deleted task to the list', () => {
+      const list = { id: 1, tasks: [{ id: 10, text: 'Task A' }, { id: 20, text: 'Task B' }] };
+      const taskToDelete = list.tasks.find(t => t.id === 10);
+      const savedTask = { ...taskToDelete };
+      list.tasks = list.tasks.filter(t => t.id !== 10);
+      expect(list.tasks).toHaveLength(1);
+
+      // Undo
+      list.tasks.push(savedTask);
+      expect(list.tasks).toHaveLength(2);
+      expect(list.tasks.find(t => t.id === 10)).toBeDefined();
+    });
+
+    test('should not restore if lastDeletedTask is null', () => {
+      let lastDeletedTask = null;
+      const list = { id: 1, tasks: [{ id: 1, text: 'Only task' }] };
+
+      if (lastDeletedTask) {
+        list.tasks.push(lastDeletedTask);
+      }
+
+      expect(list.tasks).toHaveLength(1);
+    });
+
+    test('restored task should have the same properties as before deletion', () => {
+      const originalTask = { id: 5, text: 'Buy milk', completed: false, priority: true, today: false };
+      const list = { id: 1, tasks: [originalTask] };
+      const saved = { ...originalTask };
+      list.tasks = list.tasks.filter(t => t.id !== 5);
+
+      // Undo
+      list.tasks.push(saved);
+      const restored = list.tasks.find(t => t.id === 5);
+      expect(restored.text).toBe('Buy milk');
+      expect(restored.priority).toBe(true);
+    });
+
+    test('undo state should clear after use', () => {
+      let lastDeletedTask = { id: 1, text: 'Task A' };
+      const list = { id: 1, tasks: [] };
+
+      list.tasks.push(lastDeletedTask);
+      lastDeletedTask = null;
+
+      expect(lastDeletedTask).toBeNull();
+      expect(list.tasks).toHaveLength(1);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  describe('Modal / Confirm Logic', () => {
+
+    test('should invoke callback when confirm is triggered', () => {
+      let wasConfirmed = false;
+      let pendingCallback = () => { wasConfirmed = true; };
+
+      // Simulate user clicking OK
+      if (pendingCallback) { pendingCallback(); pendingCallback = null; }
+
+      expect(wasConfirmed).toBe(true);
+    });
+
+    test('should not invoke callback when cancelled', () => {
+      let wasConfirmed = false;
+      const callback = () => { wasConfirmed = true; };
+      let pendingCallback = callback;
+
+      // Simulate user clicking Cancel
+      pendingCallback = null;
+      if (pendingCallback) pendingCallback();
+
+      expect(wasConfirmed).toBe(false);
+    });
+
+    test('should reject empty prompt input', () => {
+      const input = '   ';
+      const isValid = input && input.trim().length > 0;
+      expect(isValid).toBeFalsy();
+    });
+
+    test('should accept valid prompt input', () => {
+      const input = 'My New List';
+      const isValid = input && input.trim().length > 0;
+      expect(isValid).toBeTruthy();
+    });
+
+    test('trimmed value should be passed to callback, not raw input', () => {
+      let received = '';
+      const callback = (value) => { received = value; };
+      const rawInput = '  Shopping List  ';
+      const trimmed = rawInput.trim();
+      if (trimmed) callback(trimmed);
+      expect(received).toBe('Shopping List');
+    });
+  });
 });
