@@ -1510,3 +1510,350 @@ describe('Keyboard Shortcut Logic', () => {
     expect(shouldFocusSearch).toBe(true);
   });
 });
+
+// ─────────────────────────────────────────────────────────────
+describe('Task Notes', () => {
+    test('notes defaults to empty string on new task', () => {
+        const task = { id: 1, text: 'Test', completed: false, notes: '', subtasks: [], tags: [], recurrence: null };
+        expect(task.notes).toBe('');
+    });
+
+    test('saving notes updates task.notes', () => {
+        const task = { id: 1, text: 'Test', notes: '' };
+        const value = '  Some notes  ';
+        task.notes = value.trim();
+        expect(task.notes).toBe('Some notes');
+    });
+
+    test('clearing notes sets to empty string', () => {
+        const task = { id: 1, text: 'Test', notes: 'existing' };
+        task.notes = ''.trim();
+        expect(task.notes).toBe('');
+    });
+
+    test('notesOpen flag is transient (not in persisted data shape)', () => {
+        const task = { id: 1, text: 'Test', notes: 'hi', notesOpen: true };
+        // notesOpen should not affect saving - task.notes is what matters
+        const saved = { id: task.id, text: task.text, notes: task.notes };
+        expect(saved.notes).toBe('hi');
+        expect(saved.notesOpen).toBeUndefined();
+    });
+});
+
+// ─────────────────────────────────────────────────────────────
+describe('Sorting', () => {
+    const yesterday = (() => { const d = new Date(); d.setDate(d.getDate()-1); return d.toISOString().split('T')[0]; })();
+    const tomorrow  = (() => { const d = new Date(); d.setDate(d.getDate()+1); return d.toISOString().split('T')[0]; })();
+
+    const tasks = [
+        { id: 1, text: 'Banana', completed: false, priority: false, today: false, dueDate: tomorrow,   createdAt: '2026-01-02T00:00:00.000Z' },
+        { id: 2, text: 'Apple',  completed: false, priority: true,  today: false, dueDate: yesterday,  createdAt: '2026-01-01T00:00:00.000Z' },
+        { id: 3, text: 'Cherry', completed: true,  priority: false, today: false, dueDate: null,       createdAt: '2026-01-03T00:00:00.000Z' },
+        { id: 4, text: 'Date',   completed: false, priority: false, today: false, dueDate: null,       createdAt: '2026-01-04T00:00:00.000Z' },
+    ];
+
+    function sortTasks(mode, ts) {
+        return [...ts].sort((a, b) => {
+            if (mode === 'due') {
+                if (!a.dueDate && !b.dueDate) return 0;
+                if (!a.dueDate) return 1;
+                if (!b.dueDate) return -1;
+                return a.dueDate.localeCompare(b.dueDate);
+            }
+            if (mode === 'created') return (a.createdAt || '').localeCompare(b.createdAt || '');
+            if (mode === 'alpha') return a.text.localeCompare(b.text);
+            if (a.completed !== b.completed) return a.completed ? 1 : -1;
+            if (a.priority !== b.priority) return a.priority ? -1 : 1;
+            if (a.today !== b.today) return a.today ? -1 : 1;
+            return 0;
+        });
+    }
+
+    test('default sort: completed last, priority first', () => {
+        const result = sortTasks('default', tasks);
+        expect(result[0].id).toBe(2); // priority
+        expect(result[result.length - 1].id).toBe(3); // completed
+    });
+
+    test('sort by alpha: A before Z', () => {
+        const result = sortTasks('alpha', tasks);
+        expect(result[0].text).toBe('Apple');
+        expect(result[1].text).toBe('Banana');
+        expect(result[2].text).toBe('Cherry');
+    });
+
+    test('sort by created: earlier first', () => {
+        const result = sortTasks('created', tasks);
+        expect(result[0].id).toBe(2); // 2026-01-01
+        expect(result[1].id).toBe(1); // 2026-01-02
+    });
+
+    test('sort by due date: no date last, earlier dates first', () => {
+        const result = sortTasks('due', tasks);
+        expect(result[0].dueDate).toBe(yesterday);
+        expect(result[1].dueDate).toBe(tomorrow);
+        expect(result[2].dueDate).toBeNull();
+        expect(result[3].dueDate).toBeNull();
+    });
+});
+
+// ─────────────────────────────────────────────────────────────
+describe('Subtasks', () => {
+    function makeTask() {
+        return { id: 1, text: 'Parent', subtasks: [] };
+    }
+
+    test('addSubtask adds to subtasks array', () => {
+        const task = makeTask();
+        task.subtasks.push({ id: 101, text: 'Sub 1', completed: false });
+        expect(task.subtasks).toHaveLength(1);
+        expect(task.subtasks[0].text).toBe('Sub 1');
+    });
+
+    test('toggleSubtask flips completed', () => {
+        const task = makeTask();
+        task.subtasks.push({ id: 101, text: 'Sub 1', completed: false });
+        const sub = task.subtasks.find(s => s.id === 101);
+        sub.completed = !sub.completed;
+        expect(sub.completed).toBe(true);
+        sub.completed = !sub.completed;
+        expect(sub.completed).toBe(false);
+    });
+
+    test('deleteSubtask removes from array', () => {
+        const task = makeTask();
+        task.subtasks.push({ id: 101, text: 'Sub 1', completed: false });
+        task.subtasks.push({ id: 102, text: 'Sub 2', completed: false });
+        task.subtasks = task.subtasks.filter(s => s.id !== 101);
+        expect(task.subtasks).toHaveLength(1);
+        expect(task.subtasks[0].id).toBe(102);
+    });
+
+    test('subtask progress count is correct', () => {
+        const task = makeTask();
+        task.subtasks = [
+            { id: 1, text: 'a', completed: true },
+            { id: 2, text: 'b', completed: false },
+            { id: 3, text: 'c', completed: true },
+        ];
+        const done = task.subtasks.filter(s => s.completed).length;
+        const total = task.subtasks.length;
+        expect(done).toBe(2);
+        expect(total).toBe(3);
+    });
+
+    test('new task has empty subtasks array', () => {
+        const task = { id: 1, text: 'Test', subtasks: [] };
+        expect(Array.isArray(task.subtasks)).toBe(true);
+        expect(task.subtasks).toHaveLength(0);
+    });
+});
+
+// ─────────────────────────────────────────────────────────────
+describe('Tags', () => {
+    test('new task has empty tags array', () => {
+        const task = { id: 1, text: 'Test', tags: [] };
+        expect(Array.isArray(task.tags)).toBe(true);
+    });
+
+    test('adding a tag pushes to task.tags', () => {
+        const task = { id: 1, text: 'Test', tags: [] };
+        task.tags.push('work');
+        expect(task.tags).toContain('work');
+    });
+
+    test('removing a tag filters from task.tags', () => {
+        const task = { id: 1, text: 'Test', tags: ['work', 'urgent'] };
+        task.tags = task.tags.filter(t => t !== 'work');
+        expect(task.tags).not.toContain('work');
+        expect(task.tags).toContain('urgent');
+    });
+
+    test('tag filter logic: only tasks with tag pass', () => {
+        const tasks = [
+            { id: 1, tags: ['work'] },
+            { id: 2, tags: ['personal'] },
+            { id: 3, tags: ['work', 'urgent'] },
+        ];
+        const filtered = tasks.filter(t => t.tags && t.tags.includes('work'));
+        expect(filtered).toHaveLength(2);
+        expect(filtered.map(t => t.id)).toEqual([1, 3]);
+    });
+
+    test('max 5 tags enforced', () => {
+        const tags = ['a', 'b', 'c', 'd', 'e'];
+        const newTag = 'f';
+        if (tags.length < 5) tags.push(newTag);
+        expect(tags).toHaveLength(5);
+        expect(tags).not.toContain('f');
+    });
+});
+
+// ─────────────────────────────────────────────────────────────
+describe('Bulk Actions', () => {
+    test('toggleTaskSelection adds task id to set', () => {
+        const selected = new Set();
+        const taskId = 42;
+        if (selected.has(taskId)) selected.delete(taskId);
+        else selected.add(taskId);
+        expect(selected.has(taskId)).toBe(true);
+    });
+
+    test('toggleTaskSelection removes already-selected id', () => {
+        const selected = new Set([42]);
+        if (selected.has(42)) selected.delete(42);
+        else selected.add(42);
+        expect(selected.has(42)).toBe(false);
+    });
+
+    test('bulkComplete marks all selected tasks as completed', () => {
+        const tasks = [
+            { id: 1, text: 'A', completed: false },
+            { id: 2, text: 'B', completed: false },
+            { id: 3, text: 'C', completed: false },
+        ];
+        const selected = new Set([1, 3]);
+        tasks.forEach(t => { if (selected.has(t.id)) t.completed = true; });
+        expect(tasks[0].completed).toBe(true);
+        expect(tasks[1].completed).toBe(false);
+        expect(tasks[2].completed).toBe(true);
+    });
+
+    test('bulkDelete removes selected tasks', () => {
+        const tasks = [
+            { id: 1 }, { id: 2 }, { id: 3 }
+        ];
+        const selected = new Set([2]);
+        const remaining = tasks.filter(t => !selected.has(t.id));
+        expect(remaining).toHaveLength(2);
+        expect(remaining.map(t => t.id)).toEqual([1, 3]);
+    });
+});
+
+// ─────────────────────────────────────────────────────────────
+describe('Drag Reorder', () => {
+    function reorderTasks(tasks, fromId, toId) {
+        const arr = [...tasks];
+        const fromIdx = arr.findIndex(t => t.id === fromId);
+        const toIdx   = arr.findIndex(t => t.id === toId);
+        if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return arr;
+        const [moved] = arr.splice(fromIdx, 1);
+        arr.splice(toIdx, 0, moved);
+        return arr;
+    }
+
+    test('dragDrop reorders tasks correctly (move down)', () => {
+        const tasks = [{ id: 1 }, { id: 2 }, { id: 3 }];
+        const result = reorderTasks(tasks, 1, 3);
+        expect(result.map(t => t.id)).toEqual([2, 3, 1]);
+    });
+
+    test('dragDrop reorders tasks correctly (move up)', () => {
+        const tasks = [{ id: 1 }, { id: 2 }, { id: 3 }];
+        const result = reorderTasks(tasks, 3, 1);
+        expect(result.map(t => t.id)).toEqual([3, 1, 2]);
+    });
+
+    test('dragDrop with same source and target is no-op', () => {
+        const tasks = [{ id: 1 }, { id: 2 }, { id: 3 }];
+        const result = reorderTasks(tasks, 2, 2);
+        expect(result.map(t => t.id)).toEqual([1, 2, 3]);
+    });
+
+    test('dragDrop with invalid id is no-op', () => {
+        const tasks = [{ id: 1 }, { id: 2 }];
+        const result = reorderTasks(tasks, 1, 99);
+        expect(result.map(t => t.id)).toEqual([1, 2]);
+    });
+});
+
+// ─────────────────────────────────────────────────────────────
+describe('Recurring Tasks', () => {
+    function getNextDueDate(dueDate, recurrence) {
+        if (!dueDate || !recurrence) return null;
+        const next = new Date(dueDate + 'T00:00:00');
+        next.setDate(next.getDate() + (recurrence === 'daily' ? 1 : 7));
+        return next.toISOString().split('T')[0];
+    }
+
+    test('daily recurring: next due date is +1 day', () => {
+        expect(getNextDueDate('2026-03-14', 'daily')).toBe('2026-03-15');
+    });
+
+    test('weekly recurring: next due date is +7 days', () => {
+        expect(getNextDueDate('2026-03-14', 'weekly')).toBe('2026-03-21');
+    });
+
+    test('non-recurring: does not create next task', () => {
+        const task = { recurrence: null, dueDate: '2026-03-14' };
+        const shouldCreate = task.recurrence && task.dueDate;
+        expect(shouldCreate).toBeFalsy();
+    });
+
+    test('recurring without dueDate: does not create next task', () => {
+        const task = { recurrence: 'daily', dueDate: null };
+        const shouldCreate = task.recurrence && task.dueDate;
+        expect(shouldCreate).toBeFalsy();
+    });
+
+    test('new task recurrence defaults to null', () => {
+        const task = { id: 1, text: 'Test', recurrence: null };
+        expect(task.recurrence).toBeNull();
+    });
+
+    test('cycleRecurrence cycles null → daily → weekly → null', () => {
+        const cycle = [null, 'daily', 'weekly'];
+        let r = null;
+        r = cycle[(cycle.indexOf(r) + 1) % cycle.length];
+        expect(r).toBe('daily');
+        r = cycle[(cycle.indexOf(r) + 1) % cycle.length];
+        expect(r).toBe('weekly');
+        r = cycle[(cycle.indexOf(r) + 1) % cycle.length];
+        expect(r).toBeNull();
+    });
+});
+
+// ─────────────────────────────────────────────────────────────
+describe('Pomodoro History', () => {
+    test('getPomodoroHistory returns empty array when no data', () => {
+        const raw = null;
+        const history = raw ? (() => {
+            const p = JSON.parse(raw);
+            if (p.date && p.count !== undefined) return [{ date: p.date, count: p.count }];
+            return p.history || [];
+        })() : [];
+        expect(Array.isArray(history)).toBe(true);
+        expect(history).toHaveLength(0);
+    });
+
+    test('old format {date, count} is migrated to history array', () => {
+        const raw = JSON.stringify({ date: '2026-03-14', count: 3 });
+        const parsed = JSON.parse(raw);
+        const history = (parsed.date && parsed.count !== undefined) ? [{ date: parsed.date, count: parsed.count }] : (parsed.history || []);
+        expect(history).toHaveLength(1);
+        expect(history[0].count).toBe(3);
+    });
+
+    test('new format {history:[]} is used directly', () => {
+        const raw = JSON.stringify({ history: [{ date: '2026-03-14', count: 5 }] });
+        const parsed = JSON.parse(raw);
+        const history = (parsed.date && parsed.count !== undefined) ? [{ date: parsed.date, count: parsed.count }] : (parsed.history || []);
+        expect(history[0].count).toBe(5);
+    });
+
+    test('incrementing count updates existing entry', () => {
+        const history = [{ date: '2026-03-14', count: 2 }];
+        const today = '2026-03-14';
+        const entry = history.find(h => h.date === today);
+        if (entry) entry.count++;
+        else history.push({ date: today, count: 1 });
+        expect(history[0].count).toBe(3);
+    });
+
+    test('history is sliced to last 7 entries', () => {
+        const history = Array.from({ length: 10 }, (_, i) => ({ date: `2026-01-${String(i+1).padStart(2,'0')}`, count: i }));
+        const saved = history.slice(-7);
+        expect(saved).toHaveLength(7);
+        expect(saved[0].date).toBe('2026-01-04');
+    });
+});
