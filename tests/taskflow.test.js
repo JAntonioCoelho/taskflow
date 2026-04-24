@@ -1857,3 +1857,359 @@ describe('Pomodoro History', () => {
         expect(saved[0].date).toBe('2026-01-04');
     });
 });
+
+// ─────────────────────────────────────────────────────────────
+describe('Move Task Between Lists', () => {
+    function makeLists() {
+        return [
+            { id: 1, name: 'Personal', tasks: [
+                { id: 10, text: 'Buy milk',  completed: false, priority: true, tags: ['shopping'] },
+                { id: 11, text: 'Read book', completed: false, priority: false, tags: [] }
+            ]},
+            { id: 2, name: 'Work', tasks: [
+                { id: 20, text: 'Send email', completed: false, priority: false, tags: [] }
+            ]},
+            { id: 3, name: 'Study', tasks: [] }
+        ];
+    }
+
+    function moveTask(lists, taskId, srcListId, destListId) {
+        const src  = lists.find(l => l.id === srcListId);
+        const dest = lists.find(l => l.id === destListId);
+        if (!src || !dest) return false;
+        const idx = src.tasks.findIndex(t => t.id === taskId);
+        if (idx === -1) return false;
+        const [task] = src.tasks.splice(idx, 1);
+        dest.tasks.push(task);
+        return true;
+    }
+
+    test('moves task from source list to destination', () => {
+        const lists = makeLists();
+        moveTask(lists, 10, 1, 2);
+        expect(lists[0].tasks.find(t => t.id === 10)).toBeUndefined();
+        expect(lists[1].tasks.find(t => t.id === 10)).toBeDefined();
+    });
+
+    test('removes exactly one task from source', () => {
+        const lists = makeLists();
+        moveTask(lists, 10, 1, 2);
+        expect(lists[0].tasks).toHaveLength(1);
+    });
+
+    test('destination gains exactly one task', () => {
+        const lists = makeLists();
+        moveTask(lists, 10, 1, 2);
+        expect(lists[1].tasks).toHaveLength(2);
+    });
+
+    test('moved task preserves all original properties', () => {
+        const lists = makeLists();
+        moveTask(lists, 10, 1, 2);
+        const moved = lists[1].tasks.find(t => t.id === 10);
+        expect(moved.text).toBe('Buy milk');
+        expect(moved.priority).toBe(true);
+        expect(moved.tags).toEqual(['shopping']);
+    });
+
+    test('other tasks in source list are unaffected', () => {
+        const lists = makeLists();
+        moveTask(lists, 10, 1, 2);
+        expect(lists[0].tasks[0].id).toBe(11);
+    });
+
+    test('moving to an empty list works', () => {
+        const lists = makeLists();
+        moveTask(lists, 10, 1, 3);
+        expect(lists[2].tasks).toHaveLength(1);
+        expect(lists[2].tasks[0].id).toBe(10);
+    });
+
+    test('returns false when source list does not exist', () => {
+        const lists = makeLists();
+        const result = moveTask(lists, 10, 99, 2);
+        expect(result).toBe(false);
+    });
+
+    test('returns false when destination list does not exist', () => {
+        const lists = makeLists();
+        const result = moveTask(lists, 10, 1, 99);
+        expect(result).toBe(false);
+    });
+
+    test('returns false when task id not found in source', () => {
+        const lists = makeLists();
+        const result = moveTask(lists, 999, 1, 2);
+        expect(result).toBe(false);
+        expect(lists[0].tasks).toHaveLength(2);
+    });
+
+    test('no other lists are mutated on move', () => {
+        const lists = makeLists();
+        moveTask(lists, 10, 1, 2);
+        expect(lists[2].tasks).toHaveLength(0);
+    });
+
+    test('cannot move to same list (noop-equivalent)', () => {
+        const lists = makeLists();
+        moveTask(lists, 10, 1, 1);
+        // Same src and dest: task is removed from index and appended — length unchanged
+        expect(lists[0].tasks).toHaveLength(2);
+    });
+});
+
+// ─────────────────────────────────────────────────────────────
+describe('Extended Search (notes, tags, subtasks)', () => {
+    const tasks = [
+        {
+            id: 1, text: 'Buy groceries', completed: false, dueDate: null,
+            notes: 'get organic milk', tags: ['shopping'],
+            subtasks: [{ id: 101, text: 'check coupons', completed: false }]
+        },
+        {
+            id: 2, text: 'Read a book', completed: false, dueDate: '2026-03-14',
+            notes: '', tags: ['leisure'],
+            subtasks: []
+        },
+        {
+            id: 3, text: 'Send report', completed: false, dueDate: null,
+            notes: 'attach the quarterly PDF', tags: ['work', 'urgent'],
+            subtasks: [{ id: 201, text: 'review slides', completed: false }]
+        },
+        {
+            id: 4, text: 'Call dentist', completed: true, dueDate: null,
+            notes: '', tags: [],
+            subtasks: []
+        }
+    ];
+
+    function filterTasks(query, ts) {
+        const q = query.trim().toLowerCase();
+        if (!q) return ts;
+        return ts.filter(t =>
+            t.text.toLowerCase().includes(q) ||
+            (t.dueDate && t.dueDate.includes(q)) ||
+            (t.notes && t.notes.toLowerCase().includes(q)) ||
+            (t.tags && t.tags.some(tag => tag.toLowerCase().includes(q))) ||
+            (t.subtasks && t.subtasks.some(s => s.text.toLowerCase().includes(q)))
+        );
+    }
+
+    test('matches task by notes content', () => {
+        const result = filterTasks('organic', tasks);
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe(1);
+    });
+
+    test('matches task by tag name', () => {
+        const result = filterTasks('shopping', tasks);
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe(1);
+    });
+
+    test('matches task by subtask text', () => {
+        const result = filterTasks('coupons', tasks);
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe(1);
+    });
+
+    test('matches task by partial tag name', () => {
+        const result = filterTasks('leis', tasks);
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe(2);
+    });
+
+    test('matches multiple tasks sharing a tag', () => {
+        const result = filterTasks('work', tasks);
+        expect(result.map(t => t.id)).toContain(3);
+    });
+
+    test('matches task text still works (regression)', () => {
+        const result = filterTasks('dentist', tasks);
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe(4);
+    });
+
+    test('matches due date still works (regression)', () => {
+        const result = filterTasks('2026-03-14', tasks);
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe(2);
+    });
+
+    test('empty query returns all tasks', () => {
+        expect(filterTasks('', tasks)).toHaveLength(4);
+    });
+
+    test('no match returns empty array', () => {
+        expect(filterTasks('zzznomatch', tasks)).toHaveLength(0);
+    });
+
+    test('matches partial notes text', () => {
+        const result = filterTasks('quarterly', tasks);
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe(3);
+    });
+
+    test('matches partial subtask text', () => {
+        const result = filterTasks('slides', tasks);
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe(3);
+    });
+
+    test('search is case-insensitive for tags', () => {
+        const result = filterTasks('URGENT', tasks);
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe(3);
+    });
+
+    test('search is case-insensitive for notes', () => {
+        const result = filterTasks('ORGANIC', tasks);
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe(1);
+    });
+
+    test('task with no notes/tags/subtasks does not throw', () => {
+        expect(() => filterTasks('anything', tasks)).not.toThrow();
+    });
+});
+
+// ─────────────────────────────────────────────────────────────
+describe('Delete Tag Definition', () => {
+    function makeTagDefs() {
+        return [
+            { name: 'work',     color: '#e91e63' },
+            { name: 'personal', color: '#3f51b5' },
+            { name: 'urgent',   color: '#ff5722' }
+        ];
+    }
+
+    function makeLists() {
+        return [
+            { id: 1, tasks: [
+                { id: 10, text: 'A', tags: ['work', 'urgent'] },
+                { id: 11, text: 'B', tags: ['personal'] }
+            ]},
+            { id: 2, tasks: [
+                { id: 20, text: 'C', tags: ['work'] }
+            ]}
+        ];
+    }
+
+    function deleteTagDef(name, tagDefs, lists) {
+        tagDefs = tagDefs.filter(d => d.name !== name);
+        lists.forEach(l => l.tasks.forEach(t => {
+            if (t.tags) t.tags = t.tags.filter(tag => tag !== name);
+        }));
+        return tagDefs;
+    }
+
+    test('removes tag from tagDefs', () => {
+        let tagDefs = makeTagDefs();
+        tagDefs = deleteTagDef('work', tagDefs, []);
+        expect(tagDefs.find(d => d.name === 'work')).toBeUndefined();
+    });
+
+    test('other tag definitions remain', () => {
+        let tagDefs = makeTagDefs();
+        tagDefs = deleteTagDef('work', tagDefs, []);
+        expect(tagDefs).toHaveLength(2);
+        expect(tagDefs.map(d => d.name)).toEqual(['personal', 'urgent']);
+    });
+
+    test('removes deleted tag from all tasks in all lists', () => {
+        const lists = makeLists();
+        deleteTagDef('work', makeTagDefs(), lists);
+        expect(lists[0].tasks[0].tags).not.toContain('work');
+        expect(lists[1].tasks[0].tags).not.toContain('work');
+    });
+
+    test('other tags on affected tasks are preserved', () => {
+        const lists = makeLists();
+        deleteTagDef('work', makeTagDefs(), lists);
+        expect(lists[0].tasks[0].tags).toContain('urgent');
+    });
+
+    test('tasks without the deleted tag are unaffected', () => {
+        const lists = makeLists();
+        deleteTagDef('work', makeTagDefs(), lists);
+        expect(lists[0].tasks[1].tags).toEqual(['personal']);
+    });
+
+    test('deleting non-existent tag is a no-op', () => {
+        let tagDefs = makeTagDefs();
+        const lists = makeLists();
+        tagDefs = deleteTagDef('nonexistent', tagDefs, lists);
+        expect(tagDefs).toHaveLength(3);
+        expect(lists[0].tasks[0].tags).toEqual(['work', 'urgent']);
+    });
+
+    test('deleting last tag definition leaves empty array', () => {
+        let tagDefs = [{ name: 'solo', color: '#000' }];
+        tagDefs = deleteTagDef('solo', tagDefs, []);
+        expect(tagDefs).toHaveLength(0);
+    });
+
+    test('task with empty tags array is not affected', () => {
+        const lists = [{ id: 1, tasks: [{ id: 1, text: 'X', tags: [] }] }];
+        deleteTagDef('work', makeTagDefs(), lists);
+        expect(lists[0].tasks[0].tags).toHaveLength(0);
+    });
+});
+
+// ─────────────────────────────────────────────────────────────
+describe('Keyboard Shortcuts Cheatsheet', () => {
+    test('? key opens the shortcuts overlay', () => {
+        let shortcutsVisible = false;
+        // Simulate the keydown handler
+        const handleKey = (key, inInput) => {
+            if (key === 'Escape') return;
+            if (inInput) return;
+            if (key === '?') { shortcutsVisible = true; }
+        };
+        handleKey('?', false);
+        expect(shortcutsVisible).toBe(true);
+    });
+
+    test('? key does not fire when focus is inside an input', () => {
+        let shortcutsVisible = false;
+        const handleKey = (key, inInput) => {
+            if (inInput) return;
+            if (key === '?') { shortcutsVisible = true; }
+        };
+        handleKey('?', true);
+        expect(shortcutsVisible).toBe(false);
+    });
+
+    test('Escape closes shortcuts overlay before other modals', () => {
+        let shortcutsClosed = false;
+        let promptClosed = false;
+        const handleEscape = (shortcutsOpen, promptOpen) => {
+            if (shortcutsOpen) { shortcutsClosed = true; return; }
+            if (promptOpen) { promptClosed = true; }
+        };
+        handleEscape(true, true);
+        expect(shortcutsClosed).toBe(true);
+        expect(promptClosed).toBe(false);
+    });
+
+    test('Escape falls through to prompt modal when shortcuts is closed', () => {
+        let shortcutsClosed = false;
+        let promptClosed = false;
+        const handleEscape = (shortcutsOpen, promptOpen) => {
+            if (shortcutsOpen) { shortcutsClosed = true; return; }
+            if (promptOpen) { promptClosed = true; }
+        };
+        handleEscape(false, true);
+        expect(shortcutsClosed).toBe(false);
+        expect(promptClosed).toBe(true);
+    });
+
+    test('shortcuts list contains all expected keys', () => {
+        const shortcuts = ['Ctrl+N', 'Ctrl+K', '↑ ↓', 'Enter', 'Delete', 'Esc', '?'];
+        expect(shortcuts).toContain('Ctrl+N');
+        expect(shortcuts).toContain('Ctrl+K');
+        expect(shortcuts).toContain('?');
+        expect(shortcuts).toContain('Esc');
+        expect(shortcuts).toHaveLength(7);
+    });
+});

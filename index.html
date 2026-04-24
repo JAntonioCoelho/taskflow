@@ -881,6 +881,57 @@
         border-color: var(--accent-green);
     }
 
+    .modal-select {
+        cursor: pointer;
+        appearance: auto;
+    }
+
+    .shortcuts-modal {
+        min-width: 320px;
+    }
+
+    .shortcuts-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 16px;
+    }
+
+    .shortcuts-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .shortcut-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .shortcut-row span {
+        font-size: 14px;
+        color: var(--text-secondary);
+    }
+
+    kbd {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 3px 8px;
+        font-size: 12px;
+        font-family: monospace;
+        color: var(--text-primary);
+        white-space: nowrap;
+        min-width: 80px;
+        text-align: center;
+    }
+
+    .modal-select option {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+
     .modal-actions {
         display: flex;
         gap: 8px;
@@ -1686,6 +1737,37 @@
     </div>
 </div>
 
+<!-- SHORTCUTS MODAL -->
+<div class="modal-overlay" id="shortcuts-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
+    <div class="modal shortcuts-modal">
+        <div class="shortcuts-title" id="shortcuts-title">⌨️ Keyboard Shortcuts</div>
+        <div class="shortcuts-grid">
+            <div class="shortcut-row"><kbd>Ctrl+N</kbd><span>New task</span></div>
+            <div class="shortcut-row"><kbd>Ctrl+K</kbd><span>Focus search</span></div>
+            <div class="shortcut-row"><kbd>↑ ↓</kbd><span>Navigate tasks</span></div>
+            <div class="shortcut-row"><kbd>Enter</kbd><span>Toggle complete</span></div>
+            <div class="shortcut-row"><kbd>Delete</kbd><span>Delete focused task</span></div>
+            <div class="shortcut-row"><kbd>Esc</kbd><span>Close / cancel</span></div>
+            <div class="shortcut-row"><kbd>?</kbd><span>This cheatsheet</span></div>
+        </div>
+        <div class="modal-actions" style="margin-top:20px">
+            <button class="modal-btn confirm-green" onclick="document.getElementById('shortcuts-overlay').style.display='none'">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- MOVE TASK MODAL -->
+<div class="modal-overlay" id="move-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="move-modal-message">
+    <div class="modal">
+        <div class="modal-message" id="move-modal-message">Move task to list</div>
+        <select class="modal-input modal-select" id="move-list-select" aria-label="Select destination list"></select>
+        <div class="modal-actions">
+            <button class="modal-btn cancel" onclick="moveTaskCancel()">Cancel</button>
+            <button class="modal-btn confirm-green" onclick="moveTaskConfirm()">Move</button>
+        </div>
+    </div>
+</div>
+
 <!-- UNDO TOAST -->
 <div class="toast" id="undo-toast" style="display:none" role="status" aria-live="polite">
     <span id="toast-message">Task deleted</span>
@@ -2150,8 +2232,12 @@
 
         // Search filter
         if (searchQuery) {
-            tasks = tasks.filter(t => t.text.toLowerCase().includes(searchQuery) ||
-                                      (t.dueDate && t.dueDate.includes(searchQuery)));
+            tasks = tasks.filter(t =>
+                t.text.toLowerCase().includes(searchQuery) ||
+                (t.dueDate && t.dueDate.includes(searchQuery)) ||
+                (t.notes && t.notes.toLowerCase().includes(searchQuery)) ||
+                (t.tags && t.tags.some(tag => tag.toLowerCase().includes(searchQuery))) ||
+                (t.subtasks && t.subtasks.some(s => s.text.toLowerCase().includes(searchQuery))));
         }
 
         // Tag filter
@@ -2319,6 +2405,7 @@
                             <button class="task-btn recur-btn ${task.recurrence ? 'active' : ''}" onclick="cycleRecurrence(${task.id})" title="${task.recurrence ? 'Recurrence: ' + task.recurrence + ' (click to change)' : 'Set recurrence'}" aria-label="Set recurrence">🔁</button>
                             <button class="task-btn date-btn ${task.dueDate ? 'active' : ''}" onclick="openDatePicker(${task.id})" title="Set due date" aria-label="${task.dueDate ? 'Change due date' : 'Set due date'}">📅</button>
                             <button class="task-btn edit-btn" onclick="editTask(${task.id})" title="Edit" aria-label="Edit task">✏️</button>
+                            <button class="task-btn" onclick="moveTask(${task.id})" title="Move to list" aria-label="Move to another list">➡️</button>
                             <button class="task-btn delete-btn" onclick="deleteTask(${task.id})" title="Delete" aria-label="Delete task">🗑️</button>
                         </div>
                     </div>
@@ -2433,6 +2520,43 @@
         renderAllViews();
         updateAllStats();
         showUndoToast('Task deleted');
+    }
+
+    // MOVE TASK
+    let _moveTaskId = null;
+
+    function moveTask(taskId) {
+        const otherLists = lists.filter(l => l.id !== currentListId);
+        if (otherLists.length === 0) { showAlert('No other lists to move to.'); return; }
+        _moveTaskId = taskId;
+        const select = document.getElementById('move-list-select');
+        select.innerHTML = otherLists.map(l => `<option value="${l.id}">${escapeHtml(l.icon + ' ' + l.name)}</option>`).join('');
+        document.getElementById('move-overlay').style.display = 'flex';
+        setTimeout(() => select.focus(), 50);
+    }
+
+    function moveTaskConfirm() {
+        document.getElementById('move-overlay').style.display = 'none';
+        if (_moveTaskId === null) return;
+        const srcList = lists.find(l => l.id === currentListId);
+        if (!srcList) return;
+        const taskIdx = srcList.tasks.findIndex(t => t.id === _moveTaskId);
+        if (taskIdx === -1) return;
+        const destId = parseInt(document.getElementById('move-list-select').value, 10);
+        const destList = lists.find(l => l.id === destId);
+        if (!destList) return;
+        const [task] = srcList.tasks.splice(taskIdx, 1);
+        destList.tasks.push(task);
+        _moveTaskId = null;
+        saveLists();
+        renderAllViews();
+        updateAllStats();
+        showUndoToast(`Moved to ${destList.icon} ${destList.name}`);
+    }
+
+    function moveTaskCancel() {
+        document.getElementById('move-overlay').style.display = 'none';
+        _moveTaskId = null;
     }
 
     // STATISTICS
@@ -2808,8 +2932,11 @@
                 <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
                     ${tagDefs.map(def => {
                         const isActive = activeTags.includes(def.name);
-                        return `<span class="tag-pill" style="background:${def.color};opacity:${isActive?1:0.4};cursor:pointer;border:${isActive?'2px solid white':'2px solid transparent'}"
-                            onclick="(function(){var t=JSON.parse(document.getElementById('prompt-input').value||'[]');var n=${JSON.stringify(def.name)};var i=t.indexOf(n);if(i>=0)t.splice(i,1);else if(t.length<5)t.push(n);document.getElementById('prompt-input').value=JSON.stringify(t);document.getElementById('tag-picker-div').innerHTML='';if(window._tagRefresh)window._tagRefresh();})()">${escapeHtml(def.name)}</span>`;
+                        return `<span style="display:inline-flex;align-items:center;gap:2px;">
+                            <span class="tag-pill" style="background:${def.color};opacity:${isActive?1:0.4};cursor:pointer;border:${isActive?'2px solid white':'2px solid transparent'}"
+                                onclick="(function(){var t=JSON.parse(document.getElementById('prompt-input').value||'[]');var n=${JSON.stringify(def.name)};var i=t.indexOf(n);if(i>=0)t.splice(i,1);else if(t.length<5)t.push(n);document.getElementById('prompt-input').value=JSON.stringify(t);document.getElementById('tag-picker-div').innerHTML='';if(window._tagRefresh)window._tagRefresh();})()">${escapeHtml(def.name)}</span>
+                            <button type="button" title="Delete tag" onclick="deleteTagDef(${JSON.stringify(def.name)})" style="background:none;border:none;cursor:pointer;color:var(--text-tertiary);font-size:11px;padding:0 2px;line-height:1;" aria-label="Delete tag ${escapeHtml(def.name)}">✕</button>
+                        </span>`;
                     }).join('')}
                 </div>
                 <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
@@ -2852,6 +2979,25 @@
         window._tagSelColor = null;
         _origPromptCancel();
     };
+
+    function deleteTagDef(name) {
+        tagDefs = tagDefs.filter(d => d.name !== name);
+        localStorage.setItem('tagDefs', JSON.stringify(tagDefs));
+        // Remove tag from every task in every list
+        lists.forEach(l => l.tasks.forEach(t => {
+            if (t.tags) t.tags = t.tags.filter(tag => tag !== name);
+        }));
+        saveLists();
+        // Remove from picker's in-progress selection
+        try {
+            const inp = document.getElementById('prompt-input');
+            if (inp) {
+                const sel = JSON.parse(inp.value || '[]').filter(t => t !== name);
+                inp.value = JSON.stringify(sel);
+            }
+        } catch(e) {}
+        if (window._tagRefresh) window._tagRefresh();
+    }
 
     function setTagFilter(tagName) {
         tagFilter = tagName === null ? null : (tagFilter === tagName ? null : tagName);
@@ -3120,12 +3266,19 @@
         const inInput = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
         // Escape: close modals / clear search focus
         if (e.key === 'Escape') {
-            if (document.getElementById('prompt-overlay').style.display !== 'none') promptCancel();
+            if (document.getElementById('shortcuts-overlay').style.display !== 'none') { document.getElementById('shortcuts-overlay').style.display = 'none'; return; }
+            if (document.getElementById('move-overlay').style.display !== 'none') moveTaskCancel();
+            else if (document.getElementById('prompt-overlay').style.display !== 'none') promptCancel();
             else if (document.getElementById('modal-overlay').style.display !== 'none') modalCancel();
             else closeSidebar();
             return;
         }
         if (inInput) return;
+        // ?: open shortcuts cheatsheet
+        if (e.key === '?') {
+            document.getElementById('shortcuts-overlay').style.display = 'flex';
+            return;
+        }
         // Ctrl/Cmd+N: focus task input
         if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
             e.preventDefault();
