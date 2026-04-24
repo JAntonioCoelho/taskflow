@@ -793,12 +793,12 @@ describe('TaskFlow - Task Management', () => {
 
     // --- State management ---
     test('radioPlaying should initialise as false', () => {
-      let radioPlaying = false;
+      const radioPlaying = false;
       expect(radioPlaying).toBe(false);
     });
 
     test('radioAudio should initialise as null', () => {
-      let radioAudio = null;
+      const radioAudio = null;
       expect(radioAudio).toBeNull();
     });
 
@@ -1146,7 +1146,7 @@ describe('TaskFlow - Task Management', () => {
     });
 
     test('should not restore if lastDeletedTask is null', () => {
-      let lastDeletedTask = null;
+      const lastDeletedTask = null;
       const list = { id: 1, tasks: [{ id: 1, text: 'Only task' }] };
 
       if (lastDeletedTask) {

@@ -9,7 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -18,32 +18,21 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
+        cache: 'npm'
 
     - name: Install dependencies
-      run: npm install
+      run: npm ci
 
     - name: Verify application file exists
       run: |
-        if [ -f "index.html" ]; then
-          echo "✅ Application file found"
-        else
+        if [ ! -f "index.html" ]; then
           echo "❌ index.html not found"
           exit 1
         fi
+        echo "✅ index.html found"
 
-    - name: Check for JavaScript errors
-      run: |
-        echo "Checking JavaScript syntax..."
-        node --check index.html || echo "JavaScript syntax check completed"
+    - name: Lint
+      run: npm run lint
 
     - name: Run tests
-      run: npm test || echo "Tests completed"
-
-    - name: Verify localStorage implementation
-      run: |
-        echo "Verifying localStorage usage..."
-        if grep -q "localStorage" index.html; then
-          echo "✅ localStorage implementation found"
-        else
-          echo "⚠️ localStorage not found"
-        fi
+      run: npm test
