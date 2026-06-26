@@ -1516,6 +1516,30 @@
     .color-swatch { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: transform 0.15s, border-color 0.15s; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; }
     .color-swatch:hover { transform: scale(1.2); }
     .color-swatch.selected { border-color: #fff; }
+
+    /* PINNED TASKS */
+    .task.pinned { border-left: 3px solid var(--accent-green); opacity: 1; }
+    .task.pinned.priority { border-left: 3px solid var(--accent-red); }
+    .task.pinned.today { border-left: 3px solid var(--accent-orange); }
+    .pin-btn { font-size: 13px; }
+    .pin-btn.active { color: var(--accent-green) !important; }
+    .pinned-divider { font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 8px 4px; opacity: 0.6; }
+
+    /* LIST PROGRESS BAR */
+    .list-progress { height: 3px; background: var(--bg-tertiary); border-radius: 2px; margin: 4px 0 0; width: 100%; overflow: hidden; }
+    .list-progress-bar { height: 100%; background: var(--accent-green); border-radius: 2px; transition: width 0.3s; }
+    .list-item { flex-wrap: wrap; }
+    .list-item > .list-progress { flex-basis: 100%; order: 10; margin: 4px 0 -2px; }
+
+    /* COMPACT MODE */
+    .compact-btn { background: none; border: 1px solid var(--border-color); color: var(--text-secondary); border-radius: 6px; padding: 4px 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
+    .compact-btn:hover, .compact-btn.active { background: var(--bg-tertiary); color: var(--text-primary); }
+    .compact-mode .task { padding: 6px 10px; }
+    .compact-mode .task-wrapper { margin-bottom: 1px; }
+    .compact-mode .task-text { font-size: 13px; }
+    .compact-mode .task-meta { font-size: 10px; }
+    .compact-mode .task-actions button { width: 24px; height: 24px; font-size: 12px; }
+    .compact-mode .task-badges span { font-size: 10px; }
 </style>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1DB954">
@@ -1637,6 +1661,8 @@
             </div>
             <!-- CROSS-LIST SEARCH TOGGLE -->
             <button class="search-all-btn" id="search-all-btn" onclick="toggleSearchAllLists()" title="Search across all lists" aria-label="Toggle cross-list search">🌐 All lists</button>
+            <!-- COMPACT MODE TOGGLE -->
+            <button class="compact-btn" id="compact-btn" onclick="toggleCompactMode()" title="Toggle compact view" aria-label="Toggle compact view">⊟ Compact</button>
             <!-- RADIO WIDGET -->
             <div class="radio-widget" id="radio-widget">
                 <div class="radio-bars" id="radio-bars">
@@ -1664,7 +1690,7 @@
         </div>
 
         <!-- CONTENT AREA -->
-        <div class="content-area">
+        <div class="content-area" id="content-area">
             <!-- TAB: ALL TASKS -->
             <div class="tab-content active" id="content-all">
                 <div class="add-task">
@@ -1857,6 +1883,7 @@
             if (t.subtasksOpen === undefined) t.subtasksOpen = false;
             if (!t.subtasks) t.subtasks = [];
             if (!t.tags) t.tags = [];
+            if (t.pinned === undefined) t.pinned = false;
         });
     });
     let currentListId = 1;
@@ -1873,6 +1900,7 @@
     const TAG_COLORS = ['#e22134','#ffa500','#1DB954','#3b82f6','#8b5cf6','#ec4899'];
     const LIST_COLORS = ['#4caf50','#2196f3','#9c27b0','#ff9800','#f44336','#e91e63','#00bcd4','#795548','#607d8b','#ff5722'];
     let _colorPickerListId = null;
+    let compactMode = localStorage.getItem('compactMode') === 'true';
 
     // THEME
     function toggleTheme() {
@@ -1912,6 +1940,11 @@
     function init() {
         loadTheme();
         updateDate();
+        if (compactMode) {
+            document.getElementById('content-area').classList.add('compact-mode');
+            const btn = document.getElementById('compact-btn');
+            if (btn) btn.classList.add('active');
+        }
         renderLists();
         renderAllViews();
         updateAllStats();
@@ -2161,8 +2194,12 @@
     function renderLists() {
         const container = document.getElementById('lists-container');
         container.innerHTML = lists.map(list => {
-            const incompleteTasks = list.tasks.filter(t => !t.completed).length;
+            const totalTasks = list.tasks.length;
+            const completedTasks = list.tasks.filter(t => t.completed).length;
+            const incompleteTasks = totalTasks - completedTasks;
+            const pct = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
             const safeListName = escapeHtml(list.name);
+            const progressBar = totalTasks > 0 ? `<div class="list-progress"><div class="list-progress-bar" style="width:${pct}%"></div></div>` : '';
             return `
                 <div class="list-item ${list.id === currentListId ? 'active' : ''}"
                     onclick="selectList(${list.id})"
@@ -2178,6 +2215,7 @@
                         <button class="list-action-btn" onclick="event.stopPropagation(); renameList(${list.id})" title="Rename" aria-label="Rename ${safeListName}">✏️</button>
                         <button class="list-action-btn delete" onclick="event.stopPropagation(); deleteList(${list.id})" title="Delete" aria-label="Delete ${safeListName}">🗑️</button>
                     </div>
+                    ${progressBar}
                 </div>
             `;
         }).join('');
@@ -2281,6 +2319,7 @@
                 recurrence: null,
                 notesOpen: false,
                 subtasksOpen: false,
+                pinned: false,
                 createdAt: new Date().toISOString()
             };
             list.tasks.push(newTask);
@@ -2336,8 +2375,9 @@
             tasks = tasks.filter(t => t.tags && t.tags.includes(tagFilter));
         }
 
-        // Sort
+        // Sort — pinned always first, then user sort mode
         tasks = [...tasks].sort((a, b) => {
+            if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
             if (sortMode === 'due') {
                 if (!a.dueDate && !b.dueDate) return 0;
                 if (!a.dueDate) return 1;
@@ -2397,8 +2437,10 @@
 
         const isDraggable = view === 'all' && !selectionMode && !isAllListsMode;
 
-        container.innerHTML = tagFilterBar + bulkToolbar + selectModeBtn + tasks.map(task => {
-            const taskClass = `task ${task.completed ? 'completed' : ''} ${task.priority ? 'priority' : ''} ${task.today ? 'today' : ''} ${isDueOverdue(task) ? 'has-overdue-date' : ''}`.replace(/\s+/g, ' ').trim();
+        const pinnedCount = tasks.filter(t => t.pinned && !t.completed).length;
+        container.innerHTML = tagFilterBar + bulkToolbar + selectModeBtn + tasks.map((task, idx) => {
+            const taskClass = `task ${task.completed ? 'completed' : ''} ${task.priority ? 'priority' : ''} ${task.today ? 'today' : ''} ${task.pinned ? 'pinned' : ''} ${isDueOverdue(task) ? 'has-overdue-date' : ''}`.replace(/\s+/g, ' ').trim();
+            const divider = (!task.completed && pinnedCount > 0 && idx === pinnedCount) ? `<div class="pinned-divider">Other tasks</div>` : '';
             const checkboxLabel = task.completed ? 'Mark as incomplete' : 'Mark as complete';
             const dueDateHtml = task.dueDate ? `<span class="task-due-date ${isDueOverdue(task) ? 'overdue' : isDueToday(task) ? 'due-today' : ''}">📅 ${formatDueDate(task.dueDate)}</span>` : '';
             const recurrenceHtml = task.recurrence ? `<span class="task-due-date">🔁 ${task.recurrence}</span>` : '';
@@ -2467,7 +2509,7 @@
                         aria-label="Task notes">${escapeHtml(task.notes || '')}</textarea>
                 </div>` : '';
 
-            return `
+            return divider + `
                 <div class="task-wrapper" tabindex="0" data-task-id="${task.id}" ${dragAttrs}
                     onkeydown="if(event.key==='Enter'&&!event.target.closest('.task-actions,.subtasks-section,.task-notes-section')){toggleTask(${task.id});}">
                     <div class="${taskClass}">
@@ -2489,6 +2531,7 @@
                             ${task.today ? '<span class="task-badge" aria-label="Today">⚡</span>' : ''}
                         </div>
                         <div class="task-actions">
+                            <button class="task-btn pin-btn ${task.pinned ? 'active' : ''}" onclick="togglePin(${task.id})" title="${task.pinned ? 'Unpin task' : 'Pin task'}" aria-label="${task.pinned ? 'Unpin task' : 'Pin to top'}">📌</button>
                             <button class="task-btn priority-btn ${task.priority ? 'active' : ''}" onclick="togglePriority(${task.id})" title="Priority" aria-label="${task.priority ? 'Remove priority' : 'Set as priority'}">⭐</button>
                             <button class="task-btn today-btn ${task.today ? 'active' : ''}" onclick="toggleToday(${task.id})" title="Today" aria-label="${task.today ? 'Remove from today' : 'Add to today'}">⚡</button>
                             <button class="task-btn subtasks-btn ${subtaskCount ? 'active' : ''}" onclick="toggleSubtasks(${task.id})" title="Subtasks" aria-label="Subtasks">☑️</button>
@@ -3453,18 +3496,59 @@
         if (!list) return;
         const task = list.tasks.find(t => t.id === taskId);
         if (!task) return;
-        document.getElementById('prompt-message').textContent = 'Set due date (clear to remove):';
+        document.getElementById('prompt-message').textContent = 'Due date — YYYY-MM-DD, "today", "tmr", "+3d", "+1w" (clear to remove):';
         const input = document.getElementById('prompt-input');
-        input.type = 'date';
+        input.type = 'text';
         input.value = task.dueDate || '';
         document.getElementById('prompt-overlay').style.display = 'flex';
         setTimeout(function() { input.focus(); }, 50);
         _promptCallback = function(value) {
-            task.dueDate = value || null;
-            input.type = 'text';
+            task.dueDate = value ? parseNaturalDate(value) : null;
             saveLists();
             renderAllViews();
         };
+    }
+
+    // PIN TASKS
+    function togglePin(taskId) {
+        const list = findListForTask(taskId);
+        if (!list) return;
+        const task = list.tasks.find(t => t.id === taskId);
+        if (!task) return;
+        task.pinned = !task.pinned;
+        saveLists();
+        renderAllViews();
+    }
+
+    // NATURAL LANGUAGE DATE PARSING
+    function parseNaturalDate(value) {
+        const v = value.trim().toLowerCase();
+        const today = new Date(); today.setHours(0,0,0,0);
+        const pad = n => String(n).padStart(2, '0');
+        const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+        if (v === 'today' || v === 'td') return fmt(today);
+        if (v === 'tomorrow' || v === 'tmr' || v === 'tom') { const d = new Date(today); d.setDate(d.getDate()+1); return fmt(d); }
+        const relMatch = v.match(/^\+?(\d+)\s*([dw])$/);
+        if (relMatch) {
+            const n = parseInt(relMatch[1], 10);
+            const d = new Date(today);
+            d.setDate(d.getDate() + (relMatch[2] === 'w' ? n * 7 : n));
+            return fmt(d);
+        }
+        // Pass through YYYY-MM-DD or any parseable date
+        if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+        const parsed = new Date(value);
+        if (!isNaN(parsed.getTime())) return fmt(parsed);
+        return value;
+    }
+
+    // COMPACT VIEW
+    function toggleCompactMode() {
+        compactMode = !compactMode;
+        localStorage.setItem('compactMode', compactMode);
+        document.getElementById('content-area').classList.toggle('compact-mode', compactMode);
+        document.getElementById('compact-btn').classList.toggle('active', compactMode);
     }
 
     // EXPORT / IMPORT

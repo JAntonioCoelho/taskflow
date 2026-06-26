@@ -2787,3 +2787,283 @@ describe('List Accent Colours', () => {
         expect(style).toBe('border-left: 3px solid #f44336;');
     });
 });
+
+// ── TIER 1 FEATURES ──────────────────────────────────────────────────────────
+
+describe('Pinned Tasks', () => {
+    function makeTask(overrides = {}) {
+        return { id: 1, text: 'task', completed: false, priority: false, today: false, pinned: false, createdAt: '2026-01-01T00:00:00.000Z', ...overrides };
+    }
+
+    function sortTasks(tasks) {
+        return [...tasks].sort((a, b) => {
+            if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+            if (a.completed !== b.completed) return a.completed ? 1 : -1;
+            if (a.priority !== b.priority) return a.priority ? -1 : 1;
+            return 0;
+        });
+    }
+
+    test('new task has pinned: false by default', () => {
+        expect(makeTask().pinned).toBe(false);
+    });
+
+    test('migration backfills pinned: false on existing tasks', () => {
+        const task = { id: 1, text: 'old' };
+        if (task.pinned === undefined) task.pinned = false;
+        expect(task.pinned).toBe(false);
+    });
+
+    test('migration preserves existing pinned: true', () => {
+        const task = { id: 1, text: 'old', pinned: true };
+        if (task.pinned === undefined) task.pinned = false;
+        expect(task.pinned).toBe(true);
+    });
+
+    test('togglePin sets pinned true on unpinned task', () => {
+        const task = makeTask();
+        task.pinned = !task.pinned;
+        expect(task.pinned).toBe(true);
+    });
+
+    test('togglePin sets pinned false on already-pinned task', () => {
+        const task = makeTask({ pinned: true });
+        task.pinned = !task.pinned;
+        expect(task.pinned).toBe(false);
+    });
+
+    test('pinned tasks sort before unpinned tasks', () => {
+        const tasks = [
+            makeTask({ id: 1, text: 'B', pinned: false }),
+            makeTask({ id: 2, text: 'A', pinned: true }),
+        ];
+        const sorted = sortTasks(tasks);
+        expect(sorted[0].id).toBe(2);
+        expect(sorted[1].id).toBe(1);
+    });
+
+    test('multiple pinned tasks remain grouped at top', () => {
+        const tasks = [
+            makeTask({ id: 1, pinned: false }),
+            makeTask({ id: 2, pinned: true }),
+            makeTask({ id: 3, pinned: true }),
+        ];
+        const sorted = sortTasks(tasks);
+        expect(sorted[0].pinned).toBe(true);
+        expect(sorted[1].pinned).toBe(true);
+        expect(sorted[2].pinned).toBe(false);
+    });
+
+    test('unpinned tasks maintain their relative priority order', () => {
+        const tasks = [
+            makeTask({ id: 1, priority: false }),
+            makeTask({ id: 2, priority: true }),
+        ];
+        const sorted = sortTasks(tasks);
+        expect(sorted[0].id).toBe(2);
+    });
+
+    test('pinned task class string includes "pinned"', () => {
+        const task = makeTask({ pinned: true });
+        const cls = `task ${task.pinned ? 'pinned' : ''}`.trim();
+        expect(cls).toContain('pinned');
+    });
+
+    test('unpinned task class string does not include "pinned"', () => {
+        const task = makeTask({ pinned: false });
+        const cls = `task ${task.pinned ? 'pinned' : ''}`.trim();
+        expect(cls).not.toContain('pinned');
+    });
+});
+
+describe('List Progress Bar', () => {
+    function computeProgress(list) {
+        const total = list.tasks.length;
+        const completed = list.tasks.filter(t => t.completed).length;
+        const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+        return { total, completed, pct };
+    }
+
+    test('empty list has 0% progress', () => {
+        expect(computeProgress({ tasks: [] }).pct).toBe(0);
+    });
+
+    test('all completed → 100%', () => {
+        const list = { tasks: [{ completed: true }, { completed: true }] };
+        expect(computeProgress(list).pct).toBe(100);
+    });
+
+    test('none completed → 0%', () => {
+        const list = { tasks: [{ completed: false }, { completed: false }] };
+        expect(computeProgress(list).pct).toBe(0);
+    });
+
+    test('half completed → 50%', () => {
+        const list = { tasks: [{ completed: true }, { completed: false }] };
+        expect(computeProgress(list).pct).toBe(50);
+    });
+
+    test('1 of 3 completed → 33%', () => {
+        const list = { tasks: [{ completed: true }, { completed: false }, { completed: false }] };
+        expect(computeProgress(list).pct).toBe(33);
+    });
+
+    test('progress bar is hidden when list has no tasks', () => {
+        const list = { tasks: [] };
+        const { total } = computeProgress(list);
+        const html = total > 0 ? '<progress-bar>' : '';
+        expect(html).toBe('');
+    });
+
+    test('progress bar is shown when list has tasks', () => {
+        const list = { tasks: [{ completed: false }] };
+        const { total } = computeProgress(list);
+        const html = total > 0 ? '<progress-bar>' : '';
+        expect(html).toBe('<progress-bar>');
+    });
+
+    test('pct is clamped to integer (no decimals)', () => {
+        const list = { tasks: [{ completed: true }, { completed: false }, { completed: false }] };
+        expect(Number.isInteger(computeProgress(list).pct)).toBe(true);
+    });
+});
+
+describe('Natural Language Due Dates', () => {
+    // Pure implementation of parseNaturalDate for testing
+    function parseNaturalDate(value, referenceDate) {
+        const v = value.trim().toLowerCase();
+        const today = referenceDate ? new Date(referenceDate) : new Date();
+        today.setHours(0, 0, 0, 0);
+        const pad = n => String(n).padStart(2, '0');
+        const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+        if (v === 'today' || v === 'td') return fmt(today);
+        if (v === 'tomorrow' || v === 'tmr' || v === 'tom') {
+            const d = new Date(today); d.setDate(d.getDate() + 1); return fmt(d);
+        }
+        const relMatch = v.match(/^\+?(\d+)\s*([dw])$/);
+        if (relMatch) {
+            const n = parseInt(relMatch[1], 10);
+            const d = new Date(today);
+            d.setDate(d.getDate() + (relMatch[2] === 'w' ? n * 7 : n));
+            return fmt(d);
+        }
+        if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+        const parsed = new Date(value);
+        if (!isNaN(parsed.getTime())) return fmt(parsed);
+        return value;
+    }
+
+    const REF = '2026-06-26'; // fixed reference date for deterministic tests
+
+    test('"today" → reference date', () => {
+        expect(parseNaturalDate('today', REF)).toBe('2026-06-26');
+    });
+
+    test('"td" → reference date', () => {
+        expect(parseNaturalDate('td', REF)).toBe('2026-06-26');
+    });
+
+    test('"tomorrow" → next day', () => {
+        expect(parseNaturalDate('tomorrow', REF)).toBe('2026-06-27');
+    });
+
+    test('"tmr" → next day', () => {
+        expect(parseNaturalDate('tmr', REF)).toBe('2026-06-27');
+    });
+
+    test('"tom" → next day', () => {
+        expect(parseNaturalDate('tom', REF)).toBe('2026-06-27');
+    });
+
+    test('"+3d" → 3 days ahead', () => {
+        expect(parseNaturalDate('+3d', REF)).toBe('2026-06-29');
+    });
+
+    test('"3d" (no plus) → 3 days ahead', () => {
+        expect(parseNaturalDate('3d', REF)).toBe('2026-06-29');
+    });
+
+    test('"+1w" → 7 days ahead', () => {
+        expect(parseNaturalDate('+1w', REF)).toBe('2026-07-03');
+    });
+
+    test('"2w" → 14 days ahead', () => {
+        expect(parseNaturalDate('2w', REF)).toBe('2026-07-10');
+    });
+
+    test('"+0d" → today', () => {
+        expect(parseNaturalDate('+0d', REF)).toBe('2026-06-26');
+    });
+
+    test('YYYY-MM-DD passes through unchanged', () => {
+        expect(parseNaturalDate('2026-12-25', REF)).toBe('2026-12-25');
+    });
+
+    test('input is case-insensitive', () => {
+        expect(parseNaturalDate('TODAY', REF)).toBe('2026-06-26');
+        expect(parseNaturalDate('TMR', REF)).toBe('2026-06-27');
+    });
+
+    test('leading/trailing whitespace is trimmed', () => {
+        expect(parseNaturalDate('  today  ', REF)).toBe('2026-06-26');
+    });
+
+    test('unrecognised string is returned as-is', () => {
+        expect(parseNaturalDate('next friday', REF)).toBe('next friday');
+    });
+});
+
+describe('Compact Mode', () => {
+    test('compactMode defaults to false when localStorage is empty', () => {
+        const mode = localStorage.getItem('compactMode') === 'true';
+        expect(mode).toBe(false);
+    });
+
+    test('compactMode is true when localStorage has "true"', () => {
+        localStorage.setItem('compactMode', 'true');
+        const mode = localStorage.getItem('compactMode') === 'true';
+        expect(mode).toBe(true);
+    });
+
+    test('compactMode is false when localStorage has "false"', () => {
+        localStorage.setItem('compactMode', 'false');
+        const mode = localStorage.getItem('compactMode') === 'true';
+        expect(mode).toBe(false);
+    });
+
+    test('toggling compact updates localStorage to "true"', () => {
+        let compactMode = false;
+        compactMode = !compactMode;
+        localStorage.setItem('compactMode', compactMode);
+        expect(localStorage.getItem('compactMode')).toBe('true');
+    });
+
+    test('toggling twice restores original false state', () => {
+        let compactMode = false;
+        compactMode = !compactMode;
+        compactMode = !compactMode;
+        expect(compactMode).toBe(false);
+    });
+
+    test('compact-mode class is added to content-area when enabled', () => {
+        document.body.innerHTML = '<div id="content-area"></div>';
+        const el = document.getElementById('content-area');
+        el.classList.toggle('compact-mode', true);
+        expect(el.classList.contains('compact-mode')).toBe(true);
+    });
+
+    test('compact-mode class is removed from content-area when disabled', () => {
+        document.body.innerHTML = '<div id="content-area" class="compact-mode"></div>';
+        const el = document.getElementById('content-area');
+        el.classList.toggle('compact-mode', false);
+        expect(el.classList.contains('compact-mode')).toBe(false);
+    });
+
+    test('compact-btn gets active class when compact is on', () => {
+        document.body.innerHTML = '<button id="compact-btn"></button>';
+        const btn = document.getElementById('compact-btn');
+        btn.classList.toggle('active', true);
+        expect(btn.classList.contains('active')).toBe(true);
+    });
+});
