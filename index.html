@@ -1476,6 +1476,23 @@
         .task-actions  { opacity: 1; }
         .list-actions  { opacity: 1; }
     }
+
+    /* TAB COUNT BADGES */
+    .tab-badge { display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.18); border-radius: 10px; font-size: 11px; font-weight: 700; min-width: 18px; height: 18px; padding: 0 5px; margin-left: 6px; line-height: 1; vertical-align: middle; }
+    .tab-btn.active .tab-badge { background: rgba(0,0,0,0.2); }
+    .tab-badge:empty { display: none; }
+
+    /* CROSS-LIST SEARCH TOGGLE */
+    .search-all-btn { flex-shrink: 0; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-secondary); cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s; white-space: nowrap; }
+    .search-all-btn:hover { border-color: var(--accent-green); color: var(--accent-green); }
+    .search-all-btn.active { background: var(--accent-green); color: #000; border-color: var(--accent-green); }
+
+    /* LIST SOURCE BADGE (shown on tasks in Done / cross-list search) */
+    .task-list-badge { font-size: 11px; color: var(--text-tertiary); background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 10px; padding: 1px 7px; }
+
+    @media (max-width: 768px) {
+        .search-all-btn { display: none; }
+    }
 </style>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1DB954">
@@ -1516,6 +1533,11 @@
                 <span class="nav-icon">⭐</span>
                 <span>Priority</span>
                 <span class="nav-badge" id="badge-priority">0</span>
+            </div>
+            <div class="nav-item" data-view="done" role="button" tabindex="0" aria-label="Completed tasks">
+                <span class="nav-icon">✅</span>
+                <span>Done</span>
+                <span class="nav-badge" id="badge-done">0</span>
             </div>
             <div class="nav-item" data-view="stats" role="button" tabindex="0" aria-label="Statistics">
                 <span class="nav-icon">📊</span>
@@ -1584,6 +1606,8 @@
                         onclick="clearSearch()" style="display:none"
                         aria-label="Clear search">✕</button>
             </div>
+            <!-- CROSS-LIST SEARCH TOGGLE -->
+            <button class="search-all-btn" id="search-all-btn" onclick="toggleSearchAllLists()" title="Search across all lists" aria-label="Toggle cross-list search">🌐 All lists</button>
             <!-- RADIO WIDGET -->
             <div class="radio-widget" id="radio-widget">
                 <div class="radio-bars" id="radio-bars">
@@ -1604,9 +1628,9 @@
 
         <!-- TABS -->
         <div class="tabs" id="tabs-container">
-            <button class="tab-btn active" data-tab="all" onclick="switchTab('all')">All</button>
-            <button class="tab-btn" data-tab="today" onclick="switchTab('today')">Today</button>
-            <button class="tab-btn" data-tab="priority" onclick="switchTab('priority')">Priority</button>
+            <button class="tab-btn active" data-tab="all" onclick="switchTab('all')">All<span class="tab-badge" id="tab-badge-all"></span></button>
+            <button class="tab-btn" data-tab="today" onclick="switchTab('today')">Today<span class="tab-badge" id="tab-badge-today"></span></button>
+            <button class="tab-btn" data-tab="priority" onclick="switchTab('priority')">Priority<span class="tab-badge" id="tab-badge-priority"></span></button>
             <button class="tab-btn" data-tab="stats" onclick="switchTab('stats')">Statistics</button>
         </div>
 
@@ -1710,6 +1734,11 @@
                     <div class="pomo-bars" id="pomo-bars"></div>
                 </div>
             </div>
+
+            <!-- DONE VIEW (archive — no tabs, accessed via sidebar) -->
+            <div class="tab-content" id="content-done">
+                <div class="tasks-container" id="tasks-done"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -1796,6 +1825,7 @@
     let searchQuery = '';
     let sortMode = 'default';
     let tagFilter = null;
+    let searchAllLists = false;
     let tagDefs = JSON.parse(localStorage.getItem('tagDefs') || '[]');
     let selectionMode = false;
     let selectedTaskIds = new Set();
@@ -2027,13 +2057,14 @@
             'all': 'All Tasks',
             'today': 'Today\'s Tasks',
             'priority': 'Priority Tasks',
-            'stats': 'Statistics'
+            'stats': 'Statistics',
+            'done': 'Completed Tasks'
         };
         document.getElementById('view-title').textContent = titles[view];
 
         // Show/hide tabs
         const tabsContainer = document.getElementById('tabs-container');
-        if (view === 'stats') {
+        if (view === 'stats' || view === 'done') {
             tabsContainer.style.display = 'none';
         } else {
             tabsContainer.style.display = 'flex';
@@ -2042,6 +2073,10 @@
         // Toggle search bar visibility (hidden on stats view)
         const searchBar = document.getElementById('header-search');
         if (searchBar) searchBar.classList.toggle('hidden', view === 'stats');
+
+        // Show cross-list toggle only on task views (not stats/done)
+        const searchAllBtn = document.getElementById('search-all-btn');
+        if (searchAllBtn) searchAllBtn.style.display = (view === 'stats' || view === 'done') ? 'none' : '';
 
         // Switch tab
         switchTab(view);
@@ -2072,6 +2107,8 @@
             renderTasks('priority');
         } else if (tab === 'stats') {
             updateDetailedStats();
+        } else if (tab === 'done') {
+            renderDoneView();
         }
     }
 
@@ -2217,10 +2254,17 @@
     function renderTasks(view) {
         const containerId = `tasks-${view}`;
         const container = document.getElementById(containerId);
-        const list = lists.find(l => l.id === currentListId);
-        if (!list) return;
 
-        let tasks = list.tasks;
+        const isAllListsMode = searchAllLists && !!searchQuery;
+        let tasks, currentList;
+
+        if (isAllListsMode) {
+            tasks = lists.flatMap(l => l.tasks.map(t => Object.assign({}, t, { _listId: l.id, _listName: l.name, _listIcon: l.icon })));
+        } else {
+            currentList = lists.find(l => l.id === currentListId);
+            if (!currentList) return;
+            tasks = currentList.tasks;
+        }
 
         // Filter by view
         if (view === 'today') {
@@ -2262,7 +2306,7 @@
         });
 
         // Build tag filter bar HTML
-        const allTagsUsed = [...new Set(list.tasks.flatMap(t => t.tags || []))];
+        const allTagsUsed = isAllListsMode ? [] : [...new Set((currentList ? currentList.tasks : []).flatMap(t => t.tags || []))];
         const tagFilterBar = allTagsUsed.length ? `
             <div class="tag-filter-bar">
                 ${allTagsUsed.map(tagName => {
@@ -2282,7 +2326,7 @@
                 <button class="bulk-btn" onclick="toggleSelectionMode()">Cancel</button>
             </div>` : '';
 
-        const selectModeBtn = view === 'all' ? `<button class="select-mode-btn ${selectionMode ? 'active' : ''}" onclick="toggleSelectionMode()" aria-label="Toggle selection mode">☑ Select</button>` : '';
+        const selectModeBtn = view === 'all' && !isAllListsMode ? `<button class="select-mode-btn ${selectionMode ? 'active' : ''}" onclick="toggleSelectionMode()" aria-label="Toggle selection mode">☑ Select</button>` : '';
 
         // Sync sort select
         setTimeout(() => {
@@ -2304,7 +2348,7 @@
             return;
         }
 
-        const isDraggable = view === 'all' && !selectionMode;
+        const isDraggable = view === 'all' && !selectionMode && !isAllListsMode;
 
         container.innerHTML = tagFilterBar + bulkToolbar + selectModeBtn + tasks.map(task => {
             const taskClass = `task ${task.completed ? 'completed' : ''} ${task.priority ? 'priority' : ''} ${task.today ? 'today' : ''} ${isDueOverdue(task) ? 'has-overdue-date' : ''}`.replace(/\s+/g, ' ').trim();
@@ -2319,8 +2363,9 @@
                 const color = def ? def.color : '#888';
                 return `<span class="tag-pill" style="background:${color}">${escapeHtml(tagName)}</span>`;
             }).join('');
-            const metaRow = (dueDateHtml || recurrenceHtml || subtaskHtml || tagPillsHtml) ?
-                `<div class="task-meta">${dueDateHtml}${recurrenceHtml}${subtaskHtml}${tagPillsHtml ? `<span class="task-tags">${tagPillsHtml}</span>` : ''}</div>` : '';
+            const listBadgeHtml = isAllListsMode && task._listName ? `<span class="task-list-badge">${escapeHtml(task._listIcon || '')} ${escapeHtml(task._listName)}</span>` : '';
+            const metaRow = (listBadgeHtml || dueDateHtml || recurrenceHtml || subtaskHtml || tagPillsHtml) ?
+                `<div class="task-meta">${listBadgeHtml}${dueDateHtml}${recurrenceHtml}${subtaskHtml}${tagPillsHtml ? `<span class="task-tags">${tagPillsHtml}</span>` : ''}</div>` : '';
 
             const dragAttrs = isDraggable ? `draggable="true" ondragstart="dragStart(event,${task.id})" ondragover="dragOver(event,${task.id})" ondrop="dragDrop(event,${task.id})" ondragend="dragEnd(event)" ondragleave="dragLeave(event)"` : '';
             const dragHandle = isDraggable ? `<span class="drag-handle" aria-hidden="true">⠿</span>` : '';
@@ -2420,14 +2465,86 @@
         if (currentView === 'all')           renderTasks('all');
         else if (currentView === 'today')    renderTasks('today');
         else if (currentView === 'priority') renderTasks('priority');
+        else if (currentView === 'done')     renderDoneView();
         updateDetailedStats();
         updateClearCompletedBtn();
     }
 
+    function renderDoneView() {
+        const container = document.getElementById('tasks-done');
+        if (!container) return;
+        let tasks = lists.flatMap(l => l.tasks
+            .filter(t => t.completed)
+            .map(t => Object.assign({}, t, { _listId: l.id, _listName: l.name, _listIcon: l.icon })));
+
+        if (searchQuery) {
+            tasks = tasks.filter(t =>
+                t.text.toLowerCase().includes(searchQuery) ||
+                (t.notes && t.notes.toLowerCase().includes(searchQuery)) ||
+                (t.tags && t.tags.some(tag => tag.toLowerCase().includes(searchQuery))) ||
+                (t.subtasks && t.subtasks.some(s => s.text.toLowerCase().includes(searchQuery))));
+        }
+
+        tasks.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+
+        if (tasks.length === 0) {
+            container.innerHTML = `<div class="empty-state"><div class="empty-icon">✅</div><p>${searchQuery ? 'No matching completed tasks.' : 'No completed tasks yet.<br>Complete a task to see it here!'}</p></div>`;
+            return;
+        }
+
+        container.innerHTML = tasks.map(task => {
+            const listBadge = `<span class="task-list-badge">${escapeHtml(task._listIcon || '')} ${escapeHtml(task._listName)}</span>`;
+            const dueDateHtml = task.dueDate ? `<span class="task-due-date">📅 ${formatDueDate(task.dueDate)}</span>` : '';
+            const subtaskCount = (task.subtasks || []).length;
+            const subtaskDone  = (task.subtasks || []).filter(s => s.completed).length;
+            const subtaskHtml  = subtaskCount ? `<span class="subtask-progress">☑ ${subtaskDone}/${subtaskCount}</span>` : '';
+            const tagPillsHtml = (task.tags || []).map(tagName => {
+                const def = tagDefs.find(d => d.name === tagName);
+                const color = def ? def.color : '#888';
+                return `<span class="tag-pill" style="background:${color}">${escapeHtml(tagName)}</span>`;
+            }).join('');
+            const metaRow = `<div class="task-meta">${listBadge}${dueDateHtml}${subtaskHtml}${tagPillsHtml ? `<span class="task-tags">${tagPillsHtml}</span>` : ''}</div>`;
+            return `
+                <div class="task-wrapper" tabindex="0" data-task-id="${task.id}">
+                    <div class="task completed">
+                        <div class="task-checkbox"
+                            role="checkbox" aria-checked="true"
+                            aria-label="Restore task"
+                            tabindex="0"
+                            onclick="toggleTask(${task.id})"
+                            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleTask(${task.id});}"></div>
+                        <div class="task-content">
+                            <div class="task-text">${escapeHtml(task.text)}</div>
+                            ${metaRow}
+                        </div>
+                        <div class="task-actions" style="opacity:1">
+                            <button class="task-btn edit-btn" onclick="toggleTask(${task.id})" title="Restore task" aria-label="Restore task">↩️</button>
+                            <button class="task-btn delete-btn" onclick="deleteTask(${task.id})" title="Delete permanently" aria-label="Delete permanently">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function toggleSearchAllLists() {
+        searchAllLists = !searchAllLists;
+        const btn = document.getElementById('search-all-btn');
+        if (btn) btn.classList.toggle('active', searchAllLists);
+        renderAllViews();
+    }
+
     // TASK ACTIONS
+    function findListForTask(taskId) {
+        for (const l of lists) {
+            if (l.tasks.some(t => t.id === taskId)) return l;
+        }
+        return null;
+    }
+
     function toggleTask(taskId) {
         if (editingTaskId) return;
-        const list = lists.find(l => l.id === currentListId);
+        const list = findListForTask(taskId);
         if (!list) return;
         const task = list.tasks.find(t => t.id === taskId);
         if (!task) return;
@@ -2453,7 +2570,8 @@
     }
 
     function togglePriority(taskId) {
-        const list = lists.find(l => l.id === currentListId);
+        const list = findListForTask(taskId);
+        if (!list) return;
         const task = list.tasks.find(t => t.id === taskId);
         task.priority = !task.priority;
         saveLists();
@@ -2462,7 +2580,8 @@
     }
 
     function toggleToday(taskId) {
-        const list = lists.find(l => l.id === currentListId);
+        const list = findListForTask(taskId);
+        if (!list) return;
         const task = list.tasks.find(t => t.id === taskId);
         task.today = !task.today;
         saveLists();
@@ -2485,7 +2604,8 @@
             return;
         }
 
-        const list = lists.find(l => l.id === currentListId);
+        const list = findListForTask(taskId);
+        if (!list) return;
         const task = list.tasks.find(t => t.id === taskId);
         task.text = newText;
         saveLists();
@@ -2507,13 +2627,13 @@
     }
 
     function deleteTask(taskId) {
-        const list = lists.find(l => l.id === currentListId);
+        const list = findListForTask(taskId);
         if (!list) return;
         const task = list.tasks.find(t => t.id === taskId);
         if (!task) return;
         // Save for undo
         lastDeletedTask = { ...task };
-        lastDeletedListId = currentListId;
+        lastDeletedListId = list.id;
         editingTaskId = null;
         list.tasks = list.tasks.filter(t => t.id !== taskId);
         saveLists();
@@ -2526,7 +2646,9 @@
     let _moveTaskId = null;
 
     function moveTask(taskId) {
-        const otherLists = lists.filter(l => l.id !== currentListId);
+        const srcList = findListForTask(taskId);
+        const srcId = srcList ? srcList.id : currentListId;
+        const otherLists = lists.filter(l => l.id !== srcId);
         if (otherLists.length === 0) { showAlert('No other lists to move to.'); return; }
         _moveTaskId = taskId;
         const select = document.getElementById('move-list-select');
@@ -2538,7 +2660,7 @@
     function moveTaskConfirm() {
         document.getElementById('move-overlay').style.display = 'none';
         if (_moveTaskId === null) return;
-        const srcList = lists.find(l => l.id === currentListId);
+        const srcList = findListForTask(_moveTaskId);
         if (!srcList) return;
         const taskIdx = srcList.tasks.findIndex(t => t.id === _moveTaskId);
         if (taskIdx === -1) return;
@@ -2563,12 +2685,24 @@
     function updateAllStats() {
         const list = lists.find(l => l.id === currentListId);
         const tasks = list ? list.tasks : [];
+        const incomplete = tasks.filter(t => !t.completed).length;
         const priority = tasks.filter(t => t.priority && !t.completed).length;
         const today = tasks.filter(t => t.today && !t.completed).length;
 
-        document.getElementById('badge-all').textContent = tasks.filter(t => !t.completed).length;
+        document.getElementById('badge-all').textContent = incomplete;
         document.getElementById('badge-today').textContent = today;
         document.getElementById('badge-priority').textContent = priority;
+
+        const allCompleted = lists.flatMap(l => l.tasks).filter(t => t.completed).length;
+        const doneEl = document.getElementById('badge-done');
+        if (doneEl) doneEl.textContent = allCompleted;
+
+        const tbAll = document.getElementById('tab-badge-all');
+        if (tbAll) tbAll.textContent = incomplete || '';
+        const tbToday = document.getElementById('tab-badge-today');
+        if (tbToday) tbToday.textContent = today || '';
+        const tbPriority = document.getElementById('tab-badge-priority');
+        if (tbPriority) tbPriority.textContent = priority || '';
     }
 
     function updateDetailedStats() {
@@ -2811,7 +2945,7 @@
 
     // TASK NOTES
     function toggleNotes(taskId) {
-        const list = lists.find(l => l.id === currentListId);
+        const list = findListForTask(taskId);
         if (!list) return;
         const task = list.tasks.find(t => t.id === taskId);
         if (!task) return;
@@ -2827,7 +2961,7 @@
     }
 
     function saveNotes(taskId, value) {
-        const list = lists.find(l => l.id === currentListId);
+        const list = findListForTask(taskId);
         if (!list) return;
         const task = list.tasks.find(t => t.id === taskId);
         if (!task) return;
@@ -2839,7 +2973,7 @@
 
     // SUBTASKS
     function toggleSubtasks(taskId) {
-        const list = lists.find(l => l.id === currentListId);
+        const list = findListForTask(taskId);
         if (!list) return;
         const task = list.tasks.find(t => t.id === taskId);
         if (!task) return;
@@ -2857,7 +2991,7 @@
         const input = document.getElementById('subtask-input-' + taskId);
         const text = input ? input.value.trim() : '';
         if (!text) return;
-        const list = lists.find(l => l.id === currentListId);
+        const list = findListForTask(taskId);
         if (!list) return;
         const task = list.tasks.find(t => t.id === taskId);
         if (!task) return;
@@ -2874,7 +3008,7 @@
     }
 
     function toggleSubtask(taskId, subtaskId) {
-        const list = lists.find(l => l.id === currentListId);
+        const list = findListForTask(taskId);
         if (!list) return;
         const task = list.tasks.find(t => t.id === taskId);
         if (!task) return;
@@ -2888,7 +3022,7 @@
     }
 
     function deleteSubtask(taskId, subtaskId) {
-        const list = lists.find(l => l.id === currentListId);
+        const list = findListForTask(taskId);
         if (!list) return;
         const task = list.tasks.find(t => t.id === taskId);
         if (!task) return;
@@ -2900,7 +3034,7 @@
 
     // TAGS
     function openTagPicker(taskId) {
-        const list = lists.find(l => l.id === currentListId);
+        const list = findListForTask(taskId);
         if (!list) return;
         const task = list.tasks.find(t => t.id === taskId);
         if (!task) return;
@@ -3081,7 +3215,7 @@
 
     // RECURRING TASKS
     function cycleRecurrence(taskId) {
-        const list = lists.find(l => l.id === currentListId);
+        const list = findListForTask(taskId);
         if (!list) return;
         const task = list.tasks.find(t => t.id === taskId);
         if (!task) return;
@@ -3179,7 +3313,7 @@
     }
 
     function openDatePicker(taskId) {
-        const list = lists.find(l => l.id === currentListId);
+        const list = findListForTask(taskId);
         if (!list) return;
         const task = list.tasks.find(t => t.id === taskId);
         if (!task) return;

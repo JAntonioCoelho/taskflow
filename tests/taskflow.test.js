@@ -2074,6 +2074,369 @@ describe('Extended Search (notes, tags, subtasks)', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
+describe('Done Archive View', () => {
+    function makeLists() {
+        return [
+            { id: 1, name: 'Personal', icon: '🏠', tasks: [
+                { id: 10, text: 'Buy milk',    completed: true,  createdAt: '2026-01-01T10:00:00.000Z', tags: ['shopping'], subtasks: [], notes: '' },
+                { id: 11, text: 'Call friend', completed: false, createdAt: '2026-01-02T10:00:00.000Z', tags: [], subtasks: [], notes: '' },
+                { id: 12, text: 'Read book',   completed: true,  createdAt: '2026-01-03T10:00:00.000Z', tags: [], subtasks: [], notes: 'chapter 1' }
+            ]},
+            { id: 2, name: 'Work', icon: '💼', tasks: [
+                { id: 20, text: 'Send email',  completed: true,  createdAt: '2026-01-04T10:00:00.000Z', tags: ['urgent'], subtasks: [], notes: '' },
+                { id: 21, text: 'Review PR',   completed: false, createdAt: '2026-01-05T10:00:00.000Z', tags: [], subtasks: [], notes: '' }
+            ]}
+        ];
+    }
+
+    function getDoneTasks(lists, searchQuery = '') {
+        let tasks = lists.flatMap(l => l.tasks
+            .filter(t => t.completed)
+            .map(t => Object.assign({}, t, { _listId: l.id, _listName: l.name, _listIcon: l.icon })));
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            tasks = tasks.filter(t =>
+                t.text.toLowerCase().includes(q) ||
+                (t.notes && t.notes.toLowerCase().includes(q)) ||
+                (t.tags && t.tags.some(tag => tag.toLowerCase().includes(q))) ||
+                (t.subtasks && t.subtasks.some(s => s.text.toLowerCase().includes(q))));
+        }
+        tasks.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+        return tasks;
+    }
+
+    test('returns only completed tasks', () => {
+        const tasks = getDoneTasks(makeLists());
+        expect(tasks.every(t => t.completed)).toBe(true);
+    });
+
+    test('collects completed tasks from all lists', () => {
+        const tasks = getDoneTasks(makeLists());
+        expect(tasks).toHaveLength(3);
+    });
+
+    test('excludes incomplete tasks', () => {
+        const ids = getDoneTasks(makeLists()).map(t => t.id);
+        expect(ids).not.toContain(11); // Call friend — incomplete
+        expect(ids).not.toContain(21); // Review PR — incomplete
+    });
+
+    test('annotates each task with source list id', () => {
+        const task = getDoneTasks(makeLists()).find(t => t.id === 20);
+        expect(task._listId).toBe(2);
+    });
+
+    test('annotates each task with source list name', () => {
+        const task = getDoneTasks(makeLists()).find(t => t.id === 20);
+        expect(task._listName).toBe('Work');
+    });
+
+    test('annotates each task with source list icon', () => {
+        const task = getDoneTasks(makeLists()).find(t => t.id === 20);
+        expect(task._listIcon).toBe('💼');
+    });
+
+    test('sorts newest createdAt first', () => {
+        const tasks = getDoneTasks(makeLists());
+        expect(tasks[0].id).toBe(20); // 2026-01-04
+        expect(tasks[1].id).toBe(12); // 2026-01-03
+        expect(tasks[2].id).toBe(10); // 2026-01-01
+    });
+
+    test('filters by search query (text match)', () => {
+        const tasks = getDoneTasks(makeLists(), 'milk');
+        expect(tasks).toHaveLength(1);
+        expect(tasks[0].id).toBe(10);
+    });
+
+    test('filters by search query (notes match)', () => {
+        const tasks = getDoneTasks(makeLists(), 'chapter');
+        expect(tasks).toHaveLength(1);
+        expect(tasks[0].id).toBe(12);
+    });
+
+    test('filters by search query (tag match)', () => {
+        const tasks = getDoneTasks(makeLists(), 'urgent');
+        expect(tasks).toHaveLength(1);
+        expect(tasks[0].id).toBe(20);
+    });
+
+    test('search is case-insensitive', () => {
+        expect(getDoneTasks(makeLists(), 'MILK')).toHaveLength(1);
+    });
+
+    test('empty search returns all done tasks', () => {
+        expect(getDoneTasks(makeLists(), '')).toHaveLength(3);
+    });
+
+    test('no-match search returns empty array', () => {
+        expect(getDoneTasks(makeLists(), 'zzznomatch')).toHaveLength(0);
+    });
+
+    test('returns empty array when no tasks are completed', () => {
+        const lists = [{ id: 1, name: 'Empty', icon: '📋', tasks: [
+            { id: 1, text: 'Todo', completed: false, createdAt: '', tags: [], subtasks: [], notes: '' }
+        ]}];
+        expect(getDoneTasks(lists)).toHaveLength(0);
+    });
+
+    test('does not mutate original task objects', () => {
+        const lists = makeLists();
+        getDoneTasks(lists);
+        expect(lists[0].tasks[0]._listId).toBeUndefined();
+    });
+
+    test('subtask text search works in done view', () => {
+        const lists = [{ id: 1, name: 'P', icon: '📋', tasks: [
+            { id: 1, text: 'Task A', completed: true, createdAt: '', tags: [], notes: '',
+              subtasks: [{ id: 101, text: 'order supplies', completed: false }] }
+        ]}];
+        const results = getDoneTasks(lists, 'supplies');
+        expect(results).toHaveLength(1);
+        expect(results[0].id).toBe(1);
+    });
+});
+
+// ─────────────────────────────────────────────────────────────
+describe('Cross-list Search', () => {
+    function makeLists() {
+        return [
+            { id: 1, name: 'Personal', icon: '🏠', tasks: [
+                { id: 10, text: 'Buy groceries', completed: false, notes: '', tags: [], subtasks: [] },
+                { id: 11, text: 'Doctor appt',   completed: true,  notes: '', tags: [], subtasks: [] }
+            ]},
+            { id: 2, name: 'Work', icon: '💼', tasks: [
+                { id: 20, text: 'Send report',  completed: false, notes: 'quarterly summary', tags: ['work'], subtasks: [] },
+                { id: 21, text: 'Team meeting', completed: false, notes: '', tags: [],
+                  subtasks: [{ id: 201, text: 'book conference room', completed: false }] }
+            ]},
+            { id: 3, name: 'Study', icon: '📚', tasks: [] }
+        ];
+    }
+
+    function crossListSearch(lists, query) {
+        const q = query.trim().toLowerCase();
+        if (!q) return [];
+        const all = lists.flatMap(l => l.tasks.map(t =>
+            Object.assign({}, t, { _listId: l.id, _listName: l.name, _listIcon: l.icon })));
+        return all.filter(t =>
+            t.text.toLowerCase().includes(q) ||
+            (t.notes && t.notes.toLowerCase().includes(q)) ||
+            (t.tags && t.tags.some(tag => tag.toLowerCase().includes(q))) ||
+            (t.subtasks && t.subtasks.some(s => s.text.toLowerCase().includes(q))));
+    }
+
+    test('empty query returns nothing (toggle on but no input is a no-op)', () => {
+        expect(crossListSearch(makeLists(), '')).toHaveLength(0);
+    });
+
+    test('whitespace-only query returns nothing', () => {
+        expect(crossListSearch(makeLists(), '   ')).toHaveLength(0);
+    });
+
+    test('finds a task in a non-current list', () => {
+        const results = crossListSearch(makeLists(), 'report');
+        expect(results).toHaveLength(1);
+        expect(results[0].id).toBe(20);
+        expect(results[0]._listName).toBe('Work');
+    });
+
+    test('results from both lists appear in a broad query', () => {
+        const results = crossListSearch(makeLists(), 'o'); // matches groceries, Doctor, report, room…
+        const listIds = [...new Set(results.map(t => t._listId))];
+        expect(listIds.length).toBeGreaterThan(1);
+    });
+
+    test('each result carries source list id', () => {
+        const result = crossListSearch(makeLists(), 'groceries')[0];
+        expect(result._listId).toBe(1);
+    });
+
+    test('each result carries source list name', () => {
+        const result = crossListSearch(makeLists(), 'groceries')[0];
+        expect(result._listName).toBe('Personal');
+    });
+
+    test('each result carries source list icon', () => {
+        const result = crossListSearch(makeLists(), 'groceries')[0];
+        expect(result._listIcon).toBe('🏠');
+    });
+
+    test('matches notes in tasks from any list', () => {
+        const results = crossListSearch(makeLists(), 'quarterly');
+        expect(results).toHaveLength(1);
+        expect(results[0].id).toBe(20);
+    });
+
+    test('matches tags in tasks from any list', () => {
+        const results = crossListSearch(makeLists(), 'work');
+        expect(results.some(t => t.id === 20)).toBe(true);
+    });
+
+    test('matches subtask text in tasks from any list', () => {
+        const results = crossListSearch(makeLists(), 'conference room');
+        expect(results).toHaveLength(1);
+        expect(results[0].id).toBe(21);
+    });
+
+    test('includes completed tasks in cross-list results', () => {
+        const results = crossListSearch(makeLists(), 'doctor');
+        expect(results).toHaveLength(1);
+        expect(results[0].completed).toBe(true);
+    });
+
+    test('no match returns empty array', () => {
+        expect(crossListSearch(makeLists(), 'zzznomatch')).toHaveLength(0);
+    });
+
+    test('list with no tasks contributes no results', () => {
+        const results = crossListSearch(makeLists(), 'anything');
+        expect(results.some(t => t._listId === 3)).toBe(false);
+    });
+
+    test('does not mutate original task objects', () => {
+        const lists = makeLists();
+        crossListSearch(lists, 'groceries');
+        expect(lists[0].tasks[0]._listId).toBeUndefined();
+    });
+});
+
+// ─────────────────────────────────────────────────────────────
+describe('Tab Count Badges', () => {
+    function makeLists() {
+        return [
+            { id: 1, tasks: [
+                { id: 10, completed: false, priority: true,  today: true  },
+                { id: 11, completed: false, priority: false, today: false },
+                { id: 12, completed: true,  priority: false, today: false },
+                { id: 13, completed: true,  priority: true,  today: true  }  // completed — must be excluded
+            ]},
+            { id: 2, tasks: [
+                { id: 20, completed: false, priority: true,  today: false },
+                { id: 21, completed: true,  priority: false, today: false }
+            ]}
+        ];
+    }
+
+    function getTabCounts(lists, listId) {
+        const list = lists.find(l => l.id === listId);
+        const tasks = list ? list.tasks : [];
+        return {
+            all:      tasks.filter(t => !t.completed).length,
+            today:    tasks.filter(t => t.today    && !t.completed).length,
+            priority: tasks.filter(t => t.priority && !t.completed).length,
+            done:     lists.flatMap(l => l.tasks).filter(t => t.completed).length
+        };
+    }
+
+    test('all badge counts incomplete tasks in current list', () => {
+        expect(getTabCounts(makeLists(), 1).all).toBe(2);
+        expect(getTabCounts(makeLists(), 2).all).toBe(1);
+    });
+
+    test('today badge counts active today tasks in current list', () => {
+        expect(getTabCounts(makeLists(), 1).today).toBe(1);
+        expect(getTabCounts(makeLists(), 2).today).toBe(0);
+    });
+
+    test('priority badge counts active priority tasks in current list', () => {
+        expect(getTabCounts(makeLists(), 1).priority).toBe(1);
+        expect(getTabCounts(makeLists(), 2).priority).toBe(1);
+    });
+
+    test('done badge aggregates completed tasks across ALL lists', () => {
+        expect(getTabCounts(makeLists(), 1).done).toBe(3); // 2 Personal + 1 Work
+    });
+
+    test('done badge is the same regardless of current list', () => {
+        const lists = makeLists();
+        expect(getTabCounts(lists, 1).done).toBe(getTabCounts(lists, 2).done);
+    });
+
+    test('completed tasks are excluded from all/today/priority counts', () => {
+        const counts = getTabCounts(makeLists(), 1);
+        expect(counts.priority).toBe(1); // id 13 is priority+completed → excluded
+        expect(counts.today).toBe(1);    // id 13 is today+completed → excluded
+    });
+
+    test('all badge is 0 when every task is complete', () => {
+        const lists = [{ id: 1, tasks: [{ id: 1, completed: true, priority: false, today: false }] }];
+        expect(getTabCounts(lists, 1).all).toBe(0);
+    });
+
+    test('done badge is 0 when no tasks are complete', () => {
+        const lists = [{ id: 1, tasks: [{ id: 1, completed: false, priority: false, today: false }] }];
+        expect(getTabCounts(lists, 1).done).toBe(0);
+    });
+
+    test('all counts return 0 for unknown list id', () => {
+        const counts = getTabCounts(makeLists(), 99);
+        expect(counts.all).toBe(0);
+        expect(counts.today).toBe(0);
+        expect(counts.priority).toBe(0);
+    });
+
+    test('done badge counts zero when lists array is empty', () => {
+        expect(getTabCounts([], 1).done).toBe(0);
+    });
+});
+
+// ─────────────────────────────────────────────────────────────
+describe('findListForTask', () => {
+    function findListForTask(lists, taskId) {
+        for (const l of lists) {
+            if (l.tasks.some(t => t.id === taskId)) return l;
+        }
+        return null;
+    }
+
+    const lists = [
+        { id: 1, name: 'Personal', tasks: [{ id: 10 }, { id: 11 }] },
+        { id: 2, name: 'Work',     tasks: [{ id: 20 }] },
+        { id: 3, name: 'Study',    tasks: [] }
+    ];
+
+    test('finds the list containing the task', () => {
+        expect(findListForTask(lists, 10).id).toBe(1);
+        expect(findListForTask(lists, 20).id).toBe(2);
+    });
+
+    test('finds a task that is not the first in its list', () => {
+        expect(findListForTask(lists, 11).id).toBe(1);
+    });
+
+    test('returns null for a non-existent task id', () => {
+        expect(findListForTask(lists, 999)).toBeNull();
+    });
+
+    test('returns null when all lists are empty', () => {
+        const empty = [{ id: 1, tasks: [] }, { id: 2, tasks: [] }];
+        expect(findListForTask(empty, 1)).toBeNull();
+    });
+
+    test('returns null for an empty lists array', () => {
+        expect(findListForTask([], 10)).toBeNull();
+    });
+
+    test('returns the correct list name for the found task', () => {
+        expect(findListForTask(lists, 20).name).toBe('Work');
+    });
+
+    test('list with empty tasks array is never returned for any id', () => {
+        expect(findListForTask(lists, 0)).toBeNull();
+    });
+
+    test('works correctly when task exists in the last list', () => {
+        const l = [
+            { id: 1, tasks: [] },
+            { id: 2, tasks: [] },
+            { id: 3, tasks: [{ id: 99 }] }
+        ];
+        expect(findListForTask(l, 99).id).toBe(3);
+    });
+});
+
+// ─────────────────────────────────────────────────────────────
 describe('Delete Tag Definition', () => {
     function makeTagDefs() {
         return [
