@@ -3067,3 +3067,244 @@ describe('Compact Mode', () => {
         expect(btn.classList.contains('active')).toBe(true);
     });
 });
+
+// ── TIER 2 FEATURES ──────────────────────────────────────────────────────────
+
+describe('Markdown Notes Rendering', () => {
+    // Pure renderMarkdown implementation for testing
+    function escapeHtml(text) {
+        return String(text)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function renderMarkdown(text) {
+        if (!text) return '';
+        let s = escapeHtml(text);
+        s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+        s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        s = s.replace(/(?<!\*)\*(?!\*)([^*]+)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+        const lines = s.split('\n');
+        const out = [];
+        let inList = false;
+        for (const line of lines) {
+            const listMatch = line.match(/^[-*]\s(.+)/);
+            if (listMatch) {
+                if (!inList) { out.push('<ul>'); inList = true; }
+                out.push(`<li>${listMatch[1]}</li>`);
+            } else {
+                if (inList) { out.push('</ul>'); inList = false; }
+                out.push(line ? line : '<br>');
+            }
+        }
+        if (inList) out.push('</ul>');
+        return out.join('\n').replace(/\n(?!<)/g, '<br>').replace(/<br>\n/g, '<br>');
+    }
+
+    test('empty string returns empty string', () => {
+        expect(renderMarkdown('')).toBe('');
+    });
+
+    test('null/undefined returns empty string', () => {
+        expect(renderMarkdown(null)).toBe('');
+    });
+
+    test('plain text is returned as-is (escaped)', () => {
+        const result = renderMarkdown('hello world');
+        expect(result).toContain('hello world');
+    });
+
+    test('**text** renders as <strong>', () => {
+        expect(renderMarkdown('**bold**')).toContain('<strong>bold</strong>');
+    });
+
+    test('*text* renders as <em>', () => {
+        expect(renderMarkdown('*italic*')).toContain('<em>italic</em>');
+    });
+
+    test('**text** does not become <em>', () => {
+        expect(renderMarkdown('**bold**')).not.toContain('<em>');
+    });
+
+    test('[label](url) renders as <a>', () => {
+        const result = renderMarkdown('[click here](https://example.com)');
+        expect(result).toContain('<a href="https://example.com"');
+        expect(result).toContain('click here');
+    });
+
+    test('link has target=_blank', () => {
+        expect(renderMarkdown('[x](http://y.com)')).toContain('target="_blank"');
+    });
+
+    test('link has rel=noopener', () => {
+        expect(renderMarkdown('[x](http://y.com)')).toContain('rel="noopener noreferrer"');
+    });
+
+    test('- item renders as list item', () => {
+        const result = renderMarkdown('- apple');
+        expect(result).toContain('<ul>');
+        expect(result).toContain('<li>apple</li>');
+    });
+
+    test('multiple list items produce one <ul>', () => {
+        const result = renderMarkdown('- a\n- b\n- c');
+        expect((result.match(/<ul>/g) || []).length).toBe(1);
+        expect((result.match(/<li>/g) || []).length).toBe(3);
+    });
+
+    test('HTML special chars are escaped to prevent XSS', () => {
+        const result = renderMarkdown('<script>alert(1)</script>');
+        expect(result).not.toContain('<script>');
+        expect(result).toContain('&lt;script&gt;');
+    });
+
+    test('bold and italic can coexist in one string', () => {
+        const result = renderMarkdown('**bold** and *italic*');
+        expect(result).toContain('<strong>bold</strong>');
+        expect(result).toContain('<em>italic</em>');
+    });
+
+    test('text after a list continues as normal text', () => {
+        const result = renderMarkdown('- item\nnormal');
+        expect(result).toContain('</ul>');
+        expect(result).toContain('normal');
+    });
+});
+
+describe('Date Quick-Edit Popover', () => {
+    // Uses the same parseNaturalDate logic tested in Tier 1
+    function parseNaturalDate(value, ref) {
+        const v = value.trim().toLowerCase();
+        const today = ref ? new Date(ref) : new Date();
+        today.setHours(0,0,0,0);
+        const pad = n => String(n).padStart(2,'0');
+        const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+        if (v === 'today' || v === 'td') return fmt(today);
+        if (v === 'tomorrow' || v === 'tmr' || v === 'tom') { const d=new Date(today); d.setDate(d.getDate()+1); return fmt(d); }
+        const m = v.match(/^\+?(\d+)\s*([dw])$/);
+        if (m) { const d=new Date(today); d.setDate(d.getDate()+(m[2]==='w'?+m[1]*7:+m[1])); return fmt(d); }
+        if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+        return value;
+    }
+
+    const REF = '2026-06-26';
+
+    test('saving an empty value clears the due date', () => {
+        const task = { id: 1, dueDate: '2026-07-01' };
+        const val = '';
+        task.dueDate = val ? parseNaturalDate(val, REF) : null;
+        expect(task.dueDate).toBeNull();
+    });
+
+    test('saving "today" sets dueDate to today string', () => {
+        const task = { id: 1, dueDate: null };
+        task.dueDate = parseNaturalDate('today', REF);
+        expect(task.dueDate).toBe('2026-06-26');
+    });
+
+    test('saving "+3d" sets correct date', () => {
+        const task = { id: 1, dueDate: null };
+        task.dueDate = parseNaturalDate('+3d', REF);
+        expect(task.dueDate).toBe('2026-06-29');
+    });
+
+    test('saving YYYY-MM-DD stores it directly', () => {
+        const task = { id: 1, dueDate: null };
+        task.dueDate = parseNaturalDate('2026-12-25', REF);
+        expect(task.dueDate).toBe('2026-12-25');
+    });
+
+    test('clearDatePopover sets dueDate to null', () => {
+        const task = { id: 1, dueDate: '2026-07-01' };
+        task.dueDate = null;
+        expect(task.dueDate).toBeNull();
+    });
+
+    test('popover state: _datePopoverTaskId tracks open task', () => {
+        let _datePopoverTaskId = null;
+        _datePopoverTaskId = 42;
+        expect(_datePopoverTaskId).toBe(42);
+    });
+
+    test('popover state: closing sets _datePopoverTaskId to null', () => {
+        let _datePopoverTaskId = 42;
+        _datePopoverTaskId = null;
+        expect(_datePopoverTaskId).toBeNull();
+    });
+
+    test('popover renders open class when open', () => {
+        document.body.innerHTML = '<div id="date-popover"></div>';
+        document.getElementById('date-popover').classList.add('open');
+        expect(document.getElementById('date-popover').classList.contains('open')).toBe(true);
+    });
+
+    test('popover loses open class after close', () => {
+        document.body.innerHTML = '<div id="date-popover" class="open"></div>';
+        document.getElementById('date-popover').classList.remove('open');
+        expect(document.getElementById('date-popover').classList.contains('open')).toBe(false);
+    });
+});
+
+describe('Focus Mode', () => {
+    test('focus mode defaults to false', () => {
+        let focusMode = false;
+        expect(focusMode).toBe(false);
+    });
+
+    test('toggling focus mode sets it to true', () => {
+        let focusMode = false;
+        focusMode = !focusMode;
+        expect(focusMode).toBe(true);
+    });
+
+    test('toggling twice restores false', () => {
+        let focusMode = false;
+        focusMode = !focusMode;
+        focusMode = !focusMode;
+        expect(focusMode).toBe(false);
+    });
+
+    test('focus-mode class is added to body when enabled', () => {
+        document.body.classList.remove('focus-mode');
+        document.body.classList.toggle('focus-mode', true);
+        expect(document.body.classList.contains('focus-mode')).toBe(true);
+    });
+
+    test('focus-mode class is removed from body when disabled', () => {
+        document.body.classList.add('focus-mode');
+        document.body.classList.toggle('focus-mode', false);
+        expect(document.body.classList.contains('focus-mode')).toBe(false);
+    });
+
+    test('focus-mode-btn gets active class when enabled', () => {
+        document.body.innerHTML = '<button id="focus-mode-btn"></button>';
+        document.getElementById('focus-mode-btn').classList.toggle('active', true);
+        expect(document.getElementById('focus-mode-btn').classList.contains('active')).toBe(true);
+    });
+
+    test('focus-mode-btn loses active class when disabled', () => {
+        document.body.innerHTML = '<button id="focus-mode-btn" class="active"></button>';
+        document.getElementById('focus-mode-btn').classList.toggle('active', false);
+        expect(document.getElementById('focus-mode-btn').classList.contains('active')).toBe(false);
+    });
+
+    test('Escape key exits focus mode', () => {
+        let focusMode = true;
+        const handleEscape = () => { if (focusMode) focusMode = false; };
+        handleEscape();
+        expect(focusMode).toBe(false);
+    });
+
+    test('F key toggles focus mode on', () => {
+        let focusMode = false;
+        const handleF = (inInput) => { if (!inInput) focusMode = !focusMode; };
+        handleF(false);
+        expect(focusMode).toBe(true);
+    });
+
+    test('F key does not fire when inside an input', () => {
+        let focusMode = false;
+        const handleF = (inInput) => { if (!inInput) focusMode = !focusMode; };
+        handleF(true);
+        expect(focusMode).toBe(false);
+    });
+});

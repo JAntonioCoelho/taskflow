@@ -1531,6 +1531,45 @@
     .list-item { flex-wrap: wrap; }
     .list-item > .list-progress { flex-basis: 100%; order: 10; margin: 4px 0 -2px; }
 
+    /* DATE QUICK-EDIT POPOVER */
+    .date-popover { position: fixed; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.45); z-index: 850; display: none; min-width: 200px; }
+    .date-popover.open { display: block; }
+    .date-popover-hint { font-size: 10px; color: var(--text-secondary); margin-bottom: 6px; }
+    .date-popover-input { width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 8px; color: var(--text-primary); font-size: 13px; outline: none; font-family: inherit; box-sizing: border-box; }
+    .date-popover-input:focus { border-color: var(--accent-green); }
+    .date-popover-actions { display: flex; gap: 6px; margin-top: 8px; }
+    .date-popover-btn { flex: 1; padding: 5px 8px; border-radius: 6px; border: none; cursor: pointer; font-size: 12px; font-family: inherit; }
+    .date-popover-save { background: var(--accent-green); color: #000; font-weight: 600; }
+    .date-popover-clear { background: var(--bg-tertiary); color: var(--text-secondary); }
+    .task-due-date { cursor: pointer; }
+    .task-due-date:hover { opacity: 0.8; text-decoration: underline dotted; }
+
+    /* MARKDOWN NOTES PREVIEW */
+    .notes-preview { font-size: 13px; color: var(--text-secondary); line-height: 1.6; cursor: text; padding: 4px 2px; word-break: break-word; }
+    .notes-preview:hover { color: var(--text-primary); }
+    .notes-preview strong { font-weight: 700; color: var(--text-primary); }
+    .notes-preview em { font-style: italic; }
+    .notes-preview a { color: var(--accent-green); text-decoration: underline; }
+    .notes-preview ul { margin: 4px 0 0 16px; padding: 0; }
+    .notes-preview li { margin-bottom: 2px; }
+    .notes-edit-hint { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; opacity: 0; transition: opacity 0.15s; }
+    .task-notes-section:hover .notes-edit-hint { opacity: 1; }
+
+    /* FOCUS MODE */
+    .focus-mode-btn { background: none; border: 1px solid var(--border-color); color: var(--text-secondary); border-radius: 6px; padding: 4px 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
+    .focus-mode-btn:hover, .focus-mode-btn.active { background: var(--bg-tertiary); color: var(--text-primary); }
+    .focus-exit-pill { position: fixed; bottom: 24px; right: 24px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 20px; padding: 8px 16px; font-size: 13px; color: var(--text-secondary); cursor: pointer; z-index: 200; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.3); transition: all 0.2s; }
+    .focus-exit-pill:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+    body.focus-mode .focus-exit-pill { display: block; }
+    body.focus-mode .sidebar { display: none !important; }
+    body.focus-mode #tabs-container { display: none !important; }
+    body.focus-mode .sort-bar { display: none; }
+    body.focus-mode #header-search { visibility: hidden !important; pointer-events: none !important; }
+    body.focus-mode #search-all-btn { display: none !important; }
+    body.focus-mode #compact-btn { display: none !important; }
+    body.focus-mode .task { padding: 14px 18px; }
+    body.focus-mode .task-text { font-size: 15px; }
+
     /* COMPACT MODE */
     .compact-btn { background: none; border: 1px solid var(--border-color); color: var(--text-secondary); border-radius: 6px; padding: 4px 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
     .compact-btn:hover, .compact-btn.active { background: var(--bg-tertiary); color: var(--text-primary); }
@@ -1663,6 +1702,8 @@
             <button class="search-all-btn" id="search-all-btn" onclick="toggleSearchAllLists()" title="Search across all lists" aria-label="Toggle cross-list search">🌐 All lists</button>
             <!-- COMPACT MODE TOGGLE -->
             <button class="compact-btn" id="compact-btn" onclick="toggleCompactMode()" title="Toggle compact view" aria-label="Toggle compact view">⊟ Compact</button>
+            <!-- FOCUS MODE TOGGLE -->
+            <button class="focus-mode-btn" id="focus-mode-btn" onclick="toggleFocusMode()" title="Focus mode (F)" aria-label="Toggle focus mode">⊙ Focus</button>
             <!-- RADIO WIDGET -->
             <div class="radio-widget" id="radio-widget">
                 <div class="radio-bars" id="radio-bars">
@@ -1838,6 +1879,7 @@
             <div class="shortcut-row"><kbd>Delete</kbd><span>Delete focused task</span></div>
             <div class="shortcut-row"><kbd>Esc</kbd><span>Close / cancel</span></div>
             <div class="shortcut-row"><kbd>?</kbd><span>This cheatsheet</span></div>
+            <div class="shortcut-row"><kbd>F</kbd><span>Toggle focus mode</span></div>
         </div>
         <div class="modal-actions" style="margin-top:20px">
             <button class="modal-btn confirm-green" onclick="document.getElementById('shortcuts-overlay').style.display='none'">Close</button>
@@ -1867,6 +1909,20 @@
 <div class="list-color-overlay" id="list-color-overlay" onclick="closeListColorPicker()">
     <div class="list-color-picker" id="list-color-picker" onclick="event.stopPropagation()"></div>
 </div>
+
+<!-- DATE QUICK-EDIT POPOVER -->
+<div class="date-popover" id="date-popover">
+    <div class="date-popover-hint">today · tmr · +3d · +1w · YYYY-MM-DD</div>
+    <input type="text" class="date-popover-input" id="date-popover-input" placeholder="Enter date…"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();saveDatePopover();}else if(event.key==='Escape'){event.stopPropagation();closeDatePopover();}">
+    <div class="date-popover-actions">
+        <button class="date-popover-btn date-popover-save" onclick="saveDatePopover()">Set</button>
+        <button class="date-popover-btn date-popover-clear" onclick="clearDatePopover()">Clear</button>
+    </div>
+</div>
+
+<!-- FOCUS MODE EXIT PILL -->
+<div class="focus-exit-pill" id="focus-exit-pill" onclick="toggleFocusMode()" title="Exit focus mode (F)">✕ Exit Focus</div>
 
 <script>
     // STATE
@@ -1901,6 +1957,8 @@
     const LIST_COLORS = ['#4caf50','#2196f3','#9c27b0','#ff9800','#f44336','#e91e63','#00bcd4','#795548','#607d8b','#ff5722'];
     let _colorPickerListId = null;
     let compactMode = localStorage.getItem('compactMode') === 'true';
+    let _datePopoverTaskId = null;
+    let focusMode = false;
 
     // THEME
     function toggleTheme() {
@@ -2442,7 +2500,7 @@
             const taskClass = `task ${task.completed ? 'completed' : ''} ${task.priority ? 'priority' : ''} ${task.today ? 'today' : ''} ${task.pinned ? 'pinned' : ''} ${isDueOverdue(task) ? 'has-overdue-date' : ''}`.replace(/\s+/g, ' ').trim();
             const divider = (!task.completed && pinnedCount > 0 && idx === pinnedCount) ? `<div class="pinned-divider">Other tasks</div>` : '';
             const checkboxLabel = task.completed ? 'Mark as incomplete' : 'Mark as complete';
-            const dueDateHtml = task.dueDate ? `<span class="task-due-date ${isDueOverdue(task) ? 'overdue' : isDueToday(task) ? 'due-today' : ''}">📅 ${formatDueDate(task.dueDate)}</span>` : '';
+            const dueDateHtml = task.dueDate ? `<span class="task-due-date ${isDueOverdue(task) ? 'overdue' : isDueToday(task) ? 'due-today' : ''}" onclick="event.stopPropagation();openDatePopover(${task.id},this)" title="Click to change date">📅 ${formatDueDate(task.dueDate)}</span>` : '';
             const recurrenceHtml = task.recurrence ? `<span class="task-due-date">🔁 ${task.recurrence}</span>` : '';
             const subtaskCount = (task.subtasks || []).length;
             const subtaskDone  = (task.subtasks || []).filter(s => s.completed).length;
@@ -2501,13 +2559,17 @@
                     </div>
                 </div>` : '';
 
-            // Notes section
-            const notesSection = (task.notesOpen || task.notes) ? `
+            // Notes section — textarea when editing, rendered markdown preview otherwise
+            const notesSection = task.notesOpen ? `
                 <div class="task-notes-section">
-                    <textarea class="notes-area" placeholder="Add a note…"
+                    <textarea class="notes-area" placeholder="Add a note… (supports **bold**, *italic*, - lists, [links](url))"
                         onblur="saveNotes(${task.id}, this.value)"
                         aria-label="Task notes">${escapeHtml(task.notes || '')}</textarea>
-                </div>` : '';
+                </div>` : (task.notes ? `
+                <div class="task-notes-section" onclick="toggleNotes(${task.id})" style="cursor:pointer" title="Click to edit note">
+                    <div class="notes-preview">${renderMarkdown(task.notes)}</div>
+                    <div class="notes-edit-hint">Click to edit</div>
+                </div>` : '');
 
             return divider + `
                 <div class="task-wrapper" tabindex="0" data-task-id="${task.id}" ${dragAttrs}
@@ -3509,6 +3571,93 @@
         };
     }
 
+    // MARKDOWN NOTES RENDERER
+    function renderMarkdown(text) {
+        if (!text) return '';
+        // Escape HTML first, then apply markdown on the escaped string
+        let s = escapeHtml(text);
+        // Links: [label](url)
+        s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+        // Bold: **text**
+        s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        // Italic: *text* (not preceded by another *)
+        s = s.replace(/(?<!\*)\*(?!\*)([^*]+)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+        // Convert lines starting with "- " or "* " into list items, then wrap groups
+        const lines = s.split('\n');
+        const out = [];
+        let inList = false;
+        for (const line of lines) {
+            const listMatch = line.match(/^[-*]\s(.+)/);
+            if (listMatch) {
+                if (!inList) { out.push('<ul>'); inList = true; }
+                out.push(`<li>${listMatch[1]}</li>`);
+            } else {
+                if (inList) { out.push('</ul>'); inList = false; }
+                out.push(line ? line : '<br>');
+            }
+        }
+        if (inList) out.push('</ul>');
+        return out.join('\n').replace(/\n(?!<)/g, '<br>').replace(/<br>\n/g, '<br>');
+    }
+
+    // DATE QUICK-EDIT POPOVER
+    function openDatePopover(taskId, el) {
+        _datePopoverTaskId = taskId;
+        const list = findListForTask(taskId);
+        const task = list ? list.tasks.find(t => t.id === taskId) : null;
+        const popover = document.getElementById('date-popover');
+        const input = document.getElementById('date-popover-input');
+        input.value = (task && task.dueDate) ? task.dueDate : '';
+        const rect = el.getBoundingClientRect();
+        const top = rect.bottom + 6;
+        const left = Math.min(rect.left, window.innerWidth - 220);
+        popover.style.top = top + 'px';
+        popover.style.left = left + 'px';
+        popover.classList.add('open');
+        setTimeout(function() {
+            input.focus(); input.select();
+            document.addEventListener('mousedown', _datePopoverOutside, { once: false });
+        }, 10);
+    }
+
+    function _datePopoverOutside(e) {
+        const popover = document.getElementById('date-popover');
+        if (!popover.contains(e.target)) { closeDatePopover(); }
+    }
+
+    function saveDatePopover() {
+        const val = document.getElementById('date-popover-input').value.trim();
+        if (_datePopoverTaskId !== null) {
+            const list = findListForTask(_datePopoverTaskId);
+            const task = list ? list.tasks.find(t => t.id === _datePopoverTaskId) : null;
+            if (task) { task.dueDate = val ? parseNaturalDate(val) : null; saveLists(); renderAllViews(); updateAllStats(); }
+        }
+        closeDatePopover();
+    }
+
+    function clearDatePopover() {
+        if (_datePopoverTaskId !== null) {
+            const list = findListForTask(_datePopoverTaskId);
+            const task = list ? list.tasks.find(t => t.id === _datePopoverTaskId) : null;
+            if (task) { task.dueDate = null; saveLists(); renderAllViews(); updateAllStats(); }
+        }
+        closeDatePopover();
+    }
+
+    function closeDatePopover() {
+        document.getElementById('date-popover').classList.remove('open');
+        document.removeEventListener('mousedown', _datePopoverOutside);
+        _datePopoverTaskId = null;
+    }
+
+    // FOCUS MODE
+    function toggleFocusMode() {
+        focusMode = !focusMode;
+        document.body.classList.toggle('focus-mode', focusMode);
+        const btn = document.getElementById('focus-mode-btn');
+        if (btn) btn.classList.toggle('active', focusMode);
+    }
+
     // PIN TASKS
     function togglePin(taskId) {
         const list = findListForTask(taskId);
@@ -3620,10 +3769,12 @@
         const inInput = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
         // Escape: close modals / clear search focus
         if (e.key === 'Escape') {
+            if (document.getElementById('date-popover').classList.contains('open')) { closeDatePopover(); return; }
             if (document.getElementById('shortcuts-overlay').style.display !== 'none') { document.getElementById('shortcuts-overlay').style.display = 'none'; return; }
             if (document.getElementById('move-overlay').style.display !== 'none') moveTaskCancel();
             else if (document.getElementById('prompt-overlay').style.display !== 'none') promptCancel();
             else if (document.getElementById('modal-overlay').style.display !== 'none') modalCancel();
+            else if (focusMode) toggleFocusMode();
             else closeSidebar();
             return;
         }
@@ -3631,6 +3782,11 @@
         // ?: open shortcuts cheatsheet
         if (e.key === '?') {
             document.getElementById('shortcuts-overlay').style.display = 'flex';
+            return;
+        }
+        // F: toggle focus mode
+        if (e.key === 'f' || e.key === 'F') {
+            toggleFocusMode();
             return;
         }
         // Ctrl/Cmd+N: focus task input
