@@ -1531,6 +1531,29 @@
     .list-item { flex-wrap: wrap; }
     .list-item > .list-progress { flex-basis: 100%; order: 10; margin: 4px 0 -2px; }
 
+    /* HABIT STREAK */
+    .streak-badge { font-size: 11px; font-weight: 700; color: var(--accent-orange); background: rgba(255,152,0,0.12); border-radius: 6px; padding: 1px 5px; }
+    .streak-badge.hot { color: #ff5722; background: rgba(255,87,34,0.12); }
+
+    /* TASK TEMPLATES */
+    .template-picker-btn { padding: 0 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-secondary); font-size: 15px; cursor: pointer; transition: all 0.2s; flex-shrink: 0; height: 38px; }
+    .template-picker-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+    .templates-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 600; display: none; align-items: center; justify-content: center; }
+    .templates-overlay.open { display: flex; }
+    .templates-panel { background: var(--bg-secondary); border-radius: 14px; padding: 20px; width: 420px; max-width: 95vw; max-height: 75vh; display: flex; flex-direction: column; box-shadow: 0 16px 48px rgba(0,0,0,0.5); }
+    .templates-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
+    .templates-close { background: none; border: none; color: var(--text-secondary); font-size: 18px; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+    .templates-close:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+    .templates-list { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+    .template-card { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; }
+    .template-card-name { flex: 1; font-size: 14px; font-weight: 500; color: var(--text-primary); }
+    .template-card-meta { font-size: 11px; color: var(--text-secondary); }
+    .template-use-btn { padding: 4px 10px; border-radius: 6px; border: none; background: var(--accent-green); color: #000; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .template-delete-btn { padding: 4px 6px; border-radius: 6px; border: none; background: var(--bg-tertiary); color: var(--text-secondary); font-size: 12px; cursor: pointer; }
+    .template-delete-btn:hover { background: var(--accent-red); color: #fff; }
+    .templates-empty { text-align: center; color: var(--text-secondary); font-size: 13px; padding: 24px 0; }
+    .save-template-btn { font-size: 12px; }
+
     /* DATE QUICK-EDIT POPOVER */
     .date-popover { position: fixed; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.45); z-index: 850; display: none; min-width: 200px; }
     .date-popover.open { display: block; }
@@ -1737,6 +1760,7 @@
                 <div class="add-task">
                     <input type="text" id="task-input" placeholder="What do you need to do?" onkeydown="handleKeyPress(event)">
                     <button onclick="addTask()">Add</button>
+                    <button class="template-picker-btn" onclick="openTemplates()" title="Use a template" aria-label="Task templates">📋</button>
                 </div>
                 <div class="sort-bar">
                     <span class="sort-label">Sort:</span>
@@ -1887,6 +1911,17 @@
     </div>
 </div>
 
+<!-- TEMPLATES OVERLAY -->
+<div class="templates-overlay" id="templates-overlay" onclick="if(event.target===this)closeTemplates()" role="dialog" aria-modal="true" aria-label="Task templates">
+    <div class="templates-panel">
+        <div class="templates-title">
+            📋 Templates
+            <button class="templates-close" onclick="closeTemplates()" aria-label="Close templates">✕</button>
+        </div>
+        <div class="templates-list" id="templates-list"></div>
+    </div>
+</div>
+
 <!-- MOVE TASK MODAL -->
 <div class="modal-overlay" id="move-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="move-modal-message">
     <div class="modal">
@@ -1940,6 +1975,8 @@
             if (!t.subtasks) t.subtasks = [];
             if (!t.tags) t.tags = [];
             if (t.pinned === undefined) t.pinned = false;
+            if (t.streak === undefined) t.streak = 0;
+            if (t.lastStreakDate === undefined) t.lastStreakDate = null;
         });
     });
     let currentListId = 1;
@@ -1959,6 +1996,7 @@
     let compactMode = localStorage.getItem('compactMode') === 'true';
     let _datePopoverTaskId = null;
     let focusMode = false;
+    let templates = JSON.parse(localStorage.getItem('taskTemplates') || '[]');
 
     // THEME
     function toggleTheme() {
@@ -2003,12 +2041,14 @@
             const btn = document.getElementById('compact-btn');
             if (btn) btn.classList.add('active');
         }
+        parseHash();
         renderLists();
         renderAllViews();
         updateAllStats();
         setupNavigation();
         checkDueReminders();
         setInterval(checkDueReminders, 60 * 60 * 1000);
+        window.addEventListener('hashchange', function() { parseHash(); renderLists(); renderAllViews(); updateAllStats(); });
     }
 
     // CURRENT DATE
@@ -2214,6 +2254,7 @@
 
         // Switch tab
         switchTab(view);
+        updateHash();
     }
 
     function switchTab(tab) {
@@ -2285,6 +2326,7 @@
         renderLists();
         renderAllViews();
         updateAllStats();
+        updateHash();
     }
 
     function addNewList() {
@@ -2378,6 +2420,8 @@
                 notesOpen: false,
                 subtasksOpen: false,
                 pinned: false,
+                streak: 0,
+                lastStreakDate: null,
                 createdAt: new Date().toISOString()
             };
             list.tasks.push(newTask);
@@ -2502,6 +2546,7 @@
             const checkboxLabel = task.completed ? 'Mark as incomplete' : 'Mark as complete';
             const dueDateHtml = task.dueDate ? `<span class="task-due-date ${isDueOverdue(task) ? 'overdue' : isDueToday(task) ? 'due-today' : ''}" onclick="event.stopPropagation();openDatePopover(${task.id},this)" title="Click to change date">📅 ${formatDueDate(task.dueDate)}</span>` : '';
             const recurrenceHtml = task.recurrence ? `<span class="task-due-date">🔁 ${task.recurrence}</span>` : '';
+            const streakHtml = (task.recurrence && task.streak > 1) ? `<span class="streak-badge ${task.streak >= 7 ? 'hot' : ''}">🔥 ${task.streak}</span>` : '';
             const subtaskCount = (task.subtasks || []).length;
             const subtaskDone  = (task.subtasks || []).filter(s => s.completed).length;
             const subtaskHtml  = subtaskCount ? `<span class="subtask-progress">☑ ${subtaskDone}/${subtaskCount}</span>` : '';
@@ -2511,8 +2556,8 @@
                 return `<span class="tag-pill" style="background:${color}">${escapeHtml(tagName)}</span>`;
             }).join('');
             const listBadgeHtml = isAllListsMode && task._listName ? `<span class="task-list-badge">${escapeHtml(task._listIcon || '')} ${escapeHtml(task._listName)}</span>` : '';
-            const metaRow = (listBadgeHtml || dueDateHtml || recurrenceHtml || subtaskHtml || tagPillsHtml) ?
-                `<div class="task-meta">${listBadgeHtml}${dueDateHtml}${recurrenceHtml}${subtaskHtml}${tagPillsHtml ? `<span class="task-tags">${tagPillsHtml}</span>` : ''}</div>` : '';
+            const metaRow = (listBadgeHtml || dueDateHtml || recurrenceHtml || streakHtml || subtaskHtml || tagPillsHtml) ?
+                `<div class="task-meta">${listBadgeHtml}${dueDateHtml}${recurrenceHtml}${streakHtml}${subtaskHtml}${tagPillsHtml ? `<span class="task-tags">${tagPillsHtml}</span>` : ''}</div>` : '';
 
             const dragAttrs = isDraggable ? `draggable="true" ondragstart="dragStart(event,${task.id})" ondragover="dragOver(event,${task.id})" ondrop="dragDrop(event,${task.id})" ondragend="dragEnd(event)" ondragleave="dragLeave(event)"` : '';
             const dragHandle = isDraggable ? `<span class="drag-handle" aria-hidden="true">⠿</span>` : '';
@@ -2601,6 +2646,7 @@
                             <button class="task-btn tag-btn ${(task.tags && task.tags.length) ? 'active' : ''}" onclick="openTagPicker(${task.id})" title="Tags" aria-label="Tags">🏷️</button>
                             <button class="task-btn recur-btn ${task.recurrence ? 'active' : ''}" onclick="cycleRecurrence(${task.id})" title="${task.recurrence ? 'Recurrence: ' + task.recurrence + ' (click to change)' : 'Set recurrence'}" aria-label="Set recurrence">🔁</button>
                             <button class="task-btn date-btn ${task.dueDate ? 'active' : ''}" onclick="openDatePicker(${task.id})" title="Set due date" aria-label="${task.dueDate ? 'Change due date' : 'Set due date'}">📅</button>
+                            <button class="task-btn save-template-btn" onclick="saveAsTemplate(${task.id})" title="Save as template" aria-label="Save as template">📋</button>
                             <button class="task-btn edit-btn" onclick="editTask(${task.id})" title="Edit" aria-label="Edit task">✏️</button>
                             <button class="task-btn" onclick="moveTask(${task.id})" title="Move to list" aria-label="Move to another list">➡️</button>
                             <button class="task-btn delete-btn" onclick="deleteTask(${task.id})" title="Delete" aria-label="Delete task">🗑️</button>
@@ -2779,6 +2825,19 @@
         const task = list.tasks.find(t => t.id === taskId);
         if (!task) return;
         task.completed = !task.completed;
+        // Streak tracking for recurring tasks
+        if (task.completed && task.recurrence) {
+            const todayStr = getTodayStr();
+            const prevDate = task.lastStreakDate;
+            if (prevDate && prevDate !== todayStr) {
+                const diffDays = Math.round((new Date(todayStr) - new Date(prevDate)) / 86400000);
+                const withinWindow = task.recurrence === 'daily' ? diffDays <= 2 : diffDays <= 9;
+                task.streak = withinWindow ? (task.streak || 0) + 1 : 1;
+            } else if (!prevDate) {
+                task.streak = 1;
+            }
+            task.lastStreakDate = todayStr;
+        }
         // Auto-create next recurring instance when completing a recurring task with a due date
         if (task.completed && task.recurrence && task.dueDate) {
             const next = new Date(task.dueDate + 'T00:00:00');
@@ -3377,6 +3436,7 @@
     function setTagFilter(tagName) {
         tagFilter = tagName === null ? null : (tagFilter === tagName ? null : tagName);
         renderAllViews();
+        updateHash();
     }
 
     // BULK ACTIONS
@@ -3700,6 +3760,130 @@
         document.getElementById('compact-btn').classList.toggle('active', compactMode);
     }
 
+    // TASK TEMPLATES
+    function saveTemplates() {
+        localStorage.setItem('taskTemplates', JSON.stringify(templates));
+    }
+
+    function saveAsTemplate(taskId) {
+        const list = findListForTask(taskId);
+        if (!list) return;
+        const task = list.tasks.find(t => t.id === taskId);
+        if (!task) return;
+        const tmpl = {
+            id: generateTaskId(),
+            name: task.text,
+            priority: task.priority,
+            today: task.today,
+            tags: task.tags ? task.tags.slice() : [],
+            subtasks: (task.subtasks || []).map(s => ({ id: generateTaskId(), text: s.text, completed: false })),
+            recurrence: task.recurrence,
+            notes: task.notes || '',
+            pinned: task.pinned || false
+        };
+        templates.push(tmpl);
+        saveTemplates();
+        showAlert('Template "' + task.text.substring(0, 30) + '" saved!');
+    }
+
+    function openTemplates() {
+        renderTemplateList();
+        document.getElementById('templates-overlay').classList.add('open');
+    }
+
+    function closeTemplates() {
+        document.getElementById('templates-overlay').classList.remove('open');
+    }
+
+    function renderTemplateList() {
+        const container = document.getElementById('templates-list');
+        if (templates.length === 0) {
+            container.innerHTML = '<div class="templates-empty">No templates yet.<br>Click 📋 on any task to save it as a template.</div>';
+            return;
+        }
+        container.innerHTML = templates.map(tmpl => {
+            const meta = [
+                tmpl.priority ? '⭐' : '',
+                tmpl.recurrence ? '🔁 ' + tmpl.recurrence : '',
+                tmpl.tags && tmpl.tags.length ? '🏷️ ' + tmpl.tags.join(', ') : '',
+                tmpl.subtasks && tmpl.subtasks.length ? '☑ ' + tmpl.subtasks.length + ' subtasks' : ''
+            ].filter(Boolean).join(' · ');
+            return `
+                <div class="template-card">
+                    <div style="flex:1;min-width:0">
+                        <div class="template-card-name">${escapeHtml(tmpl.name)}</div>
+                        ${meta ? `<div class="template-card-meta">${escapeHtml(meta)}</div>` : ''}
+                    </div>
+                    <button class="template-use-btn" onclick="useTemplate(${tmpl.id})">Use</button>
+                    <button class="template-delete-btn" onclick="deleteTemplate(${tmpl.id})" title="Delete template">🗑️</button>
+                </div>`;
+        }).join('');
+    }
+
+    function useTemplate(templateId) {
+        const tmpl = templates.find(t => t.id === templateId);
+        if (!tmpl) return;
+        const list = lists.find(l => l.id === currentListId);
+        if (!list) return;
+        const newTask = {
+            id: generateTaskId(),
+            text: tmpl.name,
+            completed: false,
+            priority: tmpl.priority || false,
+            today: tmpl.today || false,
+            dueDate: null,
+            notes: tmpl.notes || '',
+            subtasks: (tmpl.subtasks || []).map(s => ({ id: generateTaskId(), text: s.text, completed: false })),
+            tags: tmpl.tags ? tmpl.tags.slice() : [],
+            recurrence: tmpl.recurrence || null,
+            notesOpen: false,
+            subtasksOpen: false,
+            pinned: tmpl.pinned || false,
+            streak: 0,
+            lastStreakDate: null,
+            createdAt: new Date().toISOString()
+        };
+        list.tasks.push(newTask);
+        saveLists();
+        closeTemplates();
+        if (currentView !== 'all') switchView('all');
+        renderAllViews();
+        updateAllStats();
+    }
+
+    function deleteTemplate(templateId) {
+        templates = templates.filter(t => t.id !== templateId);
+        saveTemplates();
+        renderTemplateList();
+    }
+
+    // URL HASH STATE
+    function updateHash() {
+        const params = new URLSearchParams();
+        params.set('list', currentListId);
+        params.set('view', currentView);
+        if (tagFilter) params.set('tag', tagFilter);
+        history.replaceState(null, '', '#' + params.toString());
+    }
+
+    function parseHash() {
+        const hash = window.location.hash.replace(/^#/, '');
+        if (!hash) return;
+        try {
+            const params = new URLSearchParams(hash);
+            const listId = parseInt(params.get('list'), 10);
+            const view = params.get('view');
+            const tag = params.get('tag');
+            if (listId && lists.some(l => l.id === listId)) currentListId = listId;
+            if (view && ['all','today','priority','stats','done','upcoming'].includes(view)) {
+                currentView = view;
+                // switchView updates UI but calls updateHash — use switchTab directly to avoid loop
+                switchTab(view);
+            }
+            if (tag !== undefined && tag !== null) tagFilter = tag || null;
+        } catch (e) { /* ignore malformed hash */ }
+    }
+
     // EXPORT / IMPORT
     function exportData() {
         const data = JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), lists: lists }, null, 2);
@@ -3770,6 +3954,7 @@
         // Escape: close modals / clear search focus
         if (e.key === 'Escape') {
             if (document.getElementById('date-popover').classList.contains('open')) { closeDatePopover(); return; }
+            if (document.getElementById('templates-overlay').classList.contains('open')) { closeTemplates(); return; }
             if (document.getElementById('shortcuts-overlay').style.display !== 'none') { document.getElementById('shortcuts-overlay').style.display = 'none'; return; }
             if (document.getElementById('move-overlay').style.display !== 'none') moveTaskCancel();
             else if (document.getElementById('prompt-overlay').style.display !== 'none') promptCancel();

@@ -3308,3 +3308,301 @@ describe('Focus Mode', () => {
         expect(focusMode).toBe(false);
     });
 });
+
+// ── TIER 3 FEATURES ──────────────────────────────────────────────────────────
+
+describe('Habit Streak Tracking', () => {
+    function makeRecurringTask(overrides = {}) {
+        return { id: 1, text: 'Meditate', completed: false, recurrence: 'daily', streak: 0, lastStreakDate: null, dueDate: '2026-06-26', ...overrides };
+    }
+
+    function applyStreak(task, todayStr) {
+        const prevDate = task.lastStreakDate;
+        if (prevDate && prevDate !== todayStr) {
+            const diffDays = Math.round((new Date(todayStr) - new Date(prevDate)) / 86400000);
+            const withinWindow = task.recurrence === 'daily' ? diffDays <= 2 : diffDays <= 9;
+            task.streak = withinWindow ? (task.streak || 0) + 1 : 1;
+        } else if (!prevDate) {
+            task.streak = 1;
+        }
+        task.lastStreakDate = todayStr;
+        return task;
+    }
+
+    test('new task has streak: 0 and lastStreakDate: null', () => {
+        const task = makeRecurringTask();
+        expect(task.streak).toBe(0);
+        expect(task.lastStreakDate).toBeNull();
+    });
+
+    test('first completion sets streak to 1', () => {
+        const task = makeRecurringTask();
+        applyStreak(task, '2026-06-26');
+        expect(task.streak).toBe(1);
+    });
+
+    test('completing next day increments streak for daily', () => {
+        const task = makeRecurringTask({ streak: 1, lastStreakDate: '2026-06-25' });
+        applyStreak(task, '2026-06-26');
+        expect(task.streak).toBe(2);
+    });
+
+    test('completing same day does not increment (already counted)', () => {
+        const task = makeRecurringTask({ streak: 1, lastStreakDate: '2026-06-26' });
+        applyStreak(task, '2026-06-26');
+        expect(task.streak).toBe(1);
+    });
+
+    test('missing a day (2 days gap) resets streak to 1 for daily', () => {
+        const task = makeRecurringTask({ streak: 5, lastStreakDate: '2026-06-23' });
+        applyStreak(task, '2026-06-26');
+        expect(task.streak).toBe(1);
+    });
+
+    test('weekly recurrence: completing within 9 days increments', () => {
+        const task = makeRecurringTask({ recurrence: 'weekly', streak: 3, lastStreakDate: '2026-06-19' });
+        applyStreak(task, '2026-06-26');
+        expect(task.streak).toBe(4);
+    });
+
+    test('weekly recurrence: completing after 10+ days resets streak', () => {
+        const task = makeRecurringTask({ recurrence: 'weekly', streak: 3, lastStreakDate: '2026-06-10' });
+        applyStreak(task, '2026-06-26');
+        expect(task.streak).toBe(1);
+    });
+
+    test('streak >= 7 is considered "hot"', () => {
+        const task = makeRecurringTask({ streak: 7 });
+        expect(task.streak >= 7).toBe(true);
+    });
+
+    test('streak badge only shows when streak > 1', () => {
+        const task1 = makeRecurringTask({ streak: 0 });
+        const task2 = makeRecurringTask({ streak: 1 });
+        const task3 = makeRecurringTask({ streak: 5 });
+        expect(task1.recurrence && task1.streak > 1).toBe(false);
+        expect(task2.recurrence && task2.streak > 1).toBe(false);
+        expect(task3.recurrence && task3.streak > 1).toBe(true);
+    });
+
+    test('migration backfills streak: 0 on existing tasks', () => {
+        const task = { id: 1, text: 'old' };
+        if (task.streak === undefined) task.streak = 0;
+        if (task.lastStreakDate === undefined) task.lastStreakDate = null;
+        expect(task.streak).toBe(0);
+        expect(task.lastStreakDate).toBeNull();
+    });
+
+    test('new recurring instance inherits streak via Object.assign', () => {
+        const task = makeRecurringTask({ streak: 5, lastStreakDate: '2026-06-26' });
+        const newTask = Object.assign({}, task, { id: 999, completed: false });
+        expect(newTask.streak).toBe(5);
+        expect(newTask.lastStreakDate).toBe('2026-06-26');
+    });
+
+    test('non-recurring task does not get streak applied', () => {
+        const task = { id: 1, text: 'one-off', completed: false, recurrence: null, streak: 0 };
+        if (task.recurrence) applyStreak(task, '2026-06-26');
+        expect(task.streak).toBe(0);
+    });
+});
+
+describe('Task Templates', () => {
+    function makeTask(overrides = {}) {
+        return { id: 1, text: 'Morning run', priority: true, today: false, tags: ['health'], subtasks: [{ id: 10, text: 'Warm up', completed: false }], recurrence: 'daily', notes: 'Early morning', pinned: false, ...overrides };
+    }
+
+    function buildTemplate(task) {
+        return {
+            id: 999,
+            name: task.text,
+            priority: task.priority,
+            today: task.today,
+            tags: task.tags ? task.tags.slice() : [],
+            subtasks: (task.subtasks || []).map(s => ({ id: 888, text: s.text, completed: false })),
+            recurrence: task.recurrence,
+            notes: task.notes || '',
+            pinned: task.pinned || false
+        };
+    }
+
+    function useTemplate(tmpl) {
+        return {
+            id: 5000,
+            text: tmpl.name,
+            completed: false,
+            priority: tmpl.priority || false,
+            today: tmpl.today || false,
+            dueDate: null,
+            notes: tmpl.notes || '',
+            subtasks: (tmpl.subtasks || []).map(s => ({ id: 6000, text: s.text, completed: false })),
+            tags: tmpl.tags ? tmpl.tags.slice() : [],
+            recurrence: tmpl.recurrence || null,
+            pinned: tmpl.pinned || false,
+            streak: 0,
+            lastStreakDate: null
+        };
+    }
+
+    test('saveAsTemplate captures task name', () => {
+        const tmpl = buildTemplate(makeTask());
+        expect(tmpl.name).toBe('Morning run');
+    });
+
+    test('saveAsTemplate captures priority', () => {
+        expect(buildTemplate(makeTask({ priority: true })).priority).toBe(true);
+        expect(buildTemplate(makeTask({ priority: false })).priority).toBe(false);
+    });
+
+    test('saveAsTemplate captures tags', () => {
+        const tmpl = buildTemplate(makeTask({ tags: ['health', 'fitness'] }));
+        expect(tmpl.tags).toEqual(['health', 'fitness']);
+    });
+
+    test('saveAsTemplate captures recurrence', () => {
+        expect(buildTemplate(makeTask({ recurrence: 'weekly' })).recurrence).toBe('weekly');
+    });
+
+    test('saveAsTemplate captures notes', () => {
+        expect(buildTemplate(makeTask({ notes: 'Remember to stretch' })).notes).toBe('Remember to stretch');
+    });
+
+    test('saveAsTemplate captures subtasks as incomplete copies', () => {
+        const tmpl = buildTemplate(makeTask());
+        expect(tmpl.subtasks[0].text).toBe('Warm up');
+        expect(tmpl.subtasks[0].completed).toBe(false);
+    });
+
+    test('tags are a copy (mutation-safe)', () => {
+        const task = makeTask({ tags: ['a', 'b'] });
+        const tmpl = buildTemplate(task);
+        tmpl.tags.push('c');
+        expect(task.tags).not.toContain('c');
+    });
+
+    test('useTemplate creates a new task with correct fields', () => {
+        const tmpl = buildTemplate(makeTask());
+        const newTask = useTemplate(tmpl);
+        expect(newTask.text).toBe('Morning run');
+        expect(newTask.completed).toBe(false);
+        expect(newTask.dueDate).toBeNull();
+        expect(newTask.streak).toBe(0);
+    });
+
+    test('useTemplate task has fresh subtask copies', () => {
+        const tmpl = buildTemplate(makeTask());
+        const newTask = useTemplate(tmpl);
+        expect(newTask.subtasks[0].text).toBe('Warm up');
+        expect(newTask.subtasks[0].completed).toBe(false);
+    });
+
+    test('deleteTemplate removes it from the array', () => {
+        let templates = [{ id: 1, name: 'A' }, { id: 2, name: 'B' }];
+        templates = templates.filter(t => t.id !== 1);
+        expect(templates).toHaveLength(1);
+        expect(templates[0].name).toBe('B');
+    });
+
+    test('deleteTemplate on non-existent id is a no-op', () => {
+        let templates = [{ id: 1, name: 'A' }];
+        templates = templates.filter(t => t.id !== 999);
+        expect(templates).toHaveLength(1);
+    });
+
+    test('templates persist to localStorage', () => {
+        const templates = [{ id: 1, name: 'Run' }];
+        localStorage.setItem('taskTemplates', JSON.stringify(templates));
+        const loaded = JSON.parse(localStorage.getItem('taskTemplates') || '[]');
+        expect(loaded[0].name).toBe('Run');
+    });
+
+    test('empty templates list returns empty array from localStorage', () => {
+        localStorage.removeItem('taskTemplates');
+        const loaded = JSON.parse(localStorage.getItem('taskTemplates') || '[]');
+        expect(loaded).toEqual([]);
+    });
+});
+
+describe('URL Hash State', () => {
+    function buildHash(listId, view, tag) {
+        const params = new URLSearchParams();
+        params.set('list', listId);
+        params.set('view', view);
+        if (tag) params.set('tag', tag);
+        return '#' + params.toString();
+    }
+
+    function parseHash(hash, validListIds) {
+        const str = hash.replace(/^#/, '');
+        if (!str) return null;
+        const params = new URLSearchParams(str);
+        const listId = parseInt(params.get('list'), 10);
+        const view = params.get('view');
+        const tag = params.get('tag');
+        const validViews = ['all','today','priority','stats','done','upcoming'];
+        return {
+            listId: (listId && validListIds.includes(listId)) ? listId : null,
+            view: (view && validViews.includes(view)) ? view : null,
+            tag: tag || null
+        };
+    }
+
+    test('buildHash produces a hash with list and view', () => {
+        const h = buildHash(1, 'today', null);
+        expect(h).toContain('list=1');
+        expect(h).toContain('view=today');
+    });
+
+    test('buildHash includes tag when provided', () => {
+        const h = buildHash(1, 'all', 'work');
+        expect(h).toContain('tag=work');
+    });
+
+    test('buildHash omits tag when null', () => {
+        const h = buildHash(1, 'all', null);
+        expect(h).not.toContain('tag');
+    });
+
+    test('parseHash extracts list, view, tag', () => {
+        const result = parseHash('#list=2&view=today&tag=fitness', [1,2,3]);
+        expect(result.listId).toBe(2);
+        expect(result.view).toBe('today');
+        expect(result.tag).toBe('fitness');
+    });
+
+    test('parseHash rejects invalid list id', () => {
+        const result = parseHash('#list=999&view=all', [1,2,3]);
+        expect(result.listId).toBeNull();
+    });
+
+    test('parseHash rejects invalid view', () => {
+        const result = parseHash('#list=1&view=hacked', [1,2,3]);
+        expect(result.view).toBeNull();
+    });
+
+    test('parseHash returns null tag when not present', () => {
+        const result = parseHash('#list=1&view=all', [1,2,3]);
+        expect(result.tag).toBeNull();
+    });
+
+    test('empty hash returns null', () => {
+        const result = parseHash('', [1,2,3]);
+        expect(result).toBeNull();
+    });
+
+    test('all valid views are accepted', () => {
+        const views = ['all','today','priority','stats','done','upcoming'];
+        views.forEach(v => {
+            const result = parseHash(`#list=1&view=${v}`, [1]);
+            expect(result.view).toBe(v);
+        });
+    });
+
+    test('hash round-trips correctly', () => {
+        const hash = buildHash(3, 'upcoming', 'health');
+        const result = parseHash(hash, [1,2,3]);
+        expect(result.listId).toBe(3);
+        expect(result.view).toBe('upcoming');
+        expect(result.tag).toBe('health');
+    });
+});
