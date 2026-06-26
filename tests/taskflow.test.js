@@ -2576,3 +2576,214 @@ describe('Keyboard Shortcuts Cheatsheet', () => {
         expect(shortcuts).toHaveLength(7);
     });
 });
+
+// ── TIER 2 FEATURES ──────────────────────────────────────────────────────────
+
+describe('Overdue Badge Logic', () => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+
+    function countOverdue(lists) {
+        return lists.flatMap(l => l.tasks)
+            .filter(t => !t.completed && t.dueDate && t.dueDate < todayStr).length;
+    }
+
+    test('task with past due date and incomplete is overdue', () => {
+        const lists = [{ tasks: [{ completed: false, dueDate: yesterday }] }];
+        expect(countOverdue(lists)).toBe(1);
+    });
+
+    test('task with future due date is not overdue', () => {
+        const lists = [{ tasks: [{ completed: false, dueDate: tomorrow }] }];
+        expect(countOverdue(lists)).toBe(0);
+    });
+
+    test('completed task with past due date is not overdue', () => {
+        const lists = [{ tasks: [{ completed: true, dueDate: yesterday }] }];
+        expect(countOverdue(lists)).toBe(0);
+    });
+
+    test('task with no due date is not overdue', () => {
+        const lists = [{ tasks: [{ completed: false, dueDate: null }] }];
+        expect(countOverdue(lists)).toBe(0);
+    });
+
+    test('task due today is not overdue', () => {
+        const lists = [{ tasks: [{ completed: false, dueDate: todayStr }] }];
+        expect(countOverdue(lists)).toBe(0);
+    });
+
+    test('counts overdue tasks across multiple lists', () => {
+        const lists = [
+            { tasks: [{ completed: false, dueDate: yesterday }, { completed: false, dueDate: tomorrow }] },
+            { tasks: [{ completed: false, dueDate: yesterday }] }
+        ];
+        expect(countOverdue(lists)).toBe(2);
+    });
+
+    test('zero overdue returns 0', () => {
+        const lists = [{ tasks: [{ completed: false, dueDate: tomorrow }] }];
+        expect(countOverdue(lists)).toBe(0);
+    });
+
+    test('empty task list returns 0', () => {
+        expect(countOverdue([{ tasks: [] }])).toBe(0);
+    });
+});
+
+describe('Upcoming View Filtering', () => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const in3Days = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0];
+    const in8Days = new Date(Date.now() + 8 * 86400000).toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+    const sevenDaysLater = new Date(); sevenDaysLater.setDate(sevenDaysLater.getDate() + 7);
+    const sevenDaysStr = sevenDaysLater.toISOString().split('T')[0];
+
+    function filterUpcoming(lists) {
+        return lists.flatMap(l => l.tasks
+            .filter(t => !t.completed && t.dueDate && t.dueDate >= todayStr && t.dueDate <= sevenDaysStr)
+            .map(t => Object.assign({}, t, { _listId: l.id, _listName: l.name, _listColor: l.color })));
+    }
+
+    test('task due today is included', () => {
+        const lists = [{ id: 1, name: 'A', color: null, tasks: [{ id: 1, text: 'x', completed: false, dueDate: todayStr }] }];
+        expect(filterUpcoming(lists)).toHaveLength(1);
+    });
+
+    test('task due in 3 days is included', () => {
+        const lists = [{ id: 1, name: 'A', color: null, tasks: [{ id: 1, text: 'x', completed: false, dueDate: in3Days }] }];
+        expect(filterUpcoming(lists)).toHaveLength(1);
+    });
+
+    test('task due in 8 days is excluded', () => {
+        const lists = [{ id: 1, name: 'A', color: null, tasks: [{ id: 1, text: 'x', completed: false, dueDate: in8Days }] }];
+        expect(filterUpcoming(lists)).toHaveLength(0);
+    });
+
+    test('overdue task (yesterday) is excluded', () => {
+        const lists = [{ id: 1, name: 'A', color: null, tasks: [{ id: 1, text: 'x', completed: false, dueDate: yesterday }] }];
+        expect(filterUpcoming(lists)).toHaveLength(0);
+    });
+
+    test('completed task is excluded even if due within 7 days', () => {
+        const lists = [{ id: 1, name: 'A', color: null, tasks: [{ id: 1, text: 'x', completed: true, dueDate: in3Days }] }];
+        expect(filterUpcoming(lists)).toHaveLength(0);
+    });
+
+    test('task with no due date is excluded', () => {
+        const lists = [{ id: 1, name: 'A', color: null, tasks: [{ id: 1, text: 'x', completed: false, dueDate: null }] }];
+        expect(filterUpcoming(lists)).toHaveLength(0);
+    });
+
+    test('annotates tasks with list metadata', () => {
+        const lists = [{ id: 42, name: 'Work', color: '#2196f3', tasks: [{ id: 1, text: 'x', completed: false, dueDate: todayStr }] }];
+        const result = filterUpcoming(lists);
+        expect(result[0]._listId).toBe(42);
+        expect(result[0]._listName).toBe('Work');
+        expect(result[0]._listColor).toBe('#2196f3');
+    });
+
+    test('tasks are sortable by due date ascending', () => {
+        const lists = [{ id: 1, name: 'A', color: null, tasks: [
+            { id: 1, text: 'later', completed: false, dueDate: in3Days },
+            { id: 2, text: 'sooner', completed: false, dueDate: todayStr }
+        ]}];
+        const result = filterUpcoming(lists).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+        expect(result[0].text).toBe('sooner');
+        expect(result[1].text).toBe('later');
+    });
+
+    test('gathers tasks from multiple lists', () => {
+        const lists = [
+            { id: 1, name: 'A', color: null, tasks: [{ id: 1, text: 'a', completed: false, dueDate: todayStr }] },
+            { id: 2, name: 'B', color: null, tasks: [{ id: 2, text: 'b', completed: false, dueDate: in3Days }] }
+        ];
+        expect(filterUpcoming(lists)).toHaveLength(2);
+    });
+
+    test('returns empty array when no tasks are upcoming', () => {
+        const lists = [{ id: 1, name: 'A', color: null, tasks: [] }];
+        expect(filterUpcoming(lists)).toHaveLength(0);
+    });
+});
+
+describe('List Accent Colours', () => {
+    const LIST_COLORS = ['#4caf50','#2196f3','#9c27b0','#ff9800','#f44336','#e91e63','#00bcd4','#795548','#607d8b','#ff5722'];
+
+    function makeList(color = null) {
+        return { id: 1, name: 'Test', icon: '📝', color, tasks: [] };
+    }
+
+    function setListColor(lists, listId, color) {
+        const list = lists.find(l => l.id === listId);
+        if (list) list.color = color;
+        return lists;
+    }
+
+    test('new list has color: null by default', () => {
+        const list = makeList();
+        expect(list.color).toBeNull();
+    });
+
+    test('setListColor assigns a colour to the list', () => {
+        const lists = [makeList()];
+        setListColor(lists, 1, '#4caf50');
+        expect(lists[0].color).toBe('#4caf50');
+    });
+
+    test('setListColor can clear a colour by setting null', () => {
+        const lists = [makeList('#4caf50')];
+        setListColor(lists, 1, null);
+        expect(lists[0].color).toBeNull();
+    });
+
+    test('setListColor on non-existent list is a no-op', () => {
+        const lists = [makeList()];
+        setListColor(lists, 999, '#4caf50');
+        expect(lists[0].color).toBeNull();
+    });
+
+    test('LIST_COLORS palette has 10 colours', () => {
+        expect(LIST_COLORS).toHaveLength(10);
+    });
+
+    test('all palette colours are valid hex strings', () => {
+        LIST_COLORS.forEach(c => expect(c).toMatch(/^#[0-9a-f]{6}$/i));
+    });
+
+    test('migration backfills color: null on lists missing the field', () => {
+        const list = { id: 1, name: 'Old', icon: '📝', tasks: [] };
+        if (list.color === undefined) list.color = null;
+        expect(list.color).toBeNull();
+    });
+
+    test('existing color is preserved during migration', () => {
+        const list = { id: 1, name: 'Old', icon: '📝', color: '#ff9800', tasks: [] };
+        if (list.color === undefined) list.color = null;
+        expect(list.color).toBe('#ff9800');
+    });
+
+    test('cross-list views annotate tasks with _listColor', () => {
+        const lists = [{ id: 1, name: 'A', icon: '📝', color: '#2196f3', tasks: [
+            { id: 10, text: 'task', completed: true }
+        ]}];
+        const annotated = lists.flatMap(l => l.tasks
+            .filter(t => t.completed)
+            .map(t => Object.assign({}, t, { _listColor: l.color })));
+        expect(annotated[0]._listColor).toBe('#2196f3');
+    });
+
+    test('task without list colour has no border-left style', () => {
+        const task = { _listColor: null };
+        const style = task._listColor ? `border-left: 3px solid ${task._listColor};` : '';
+        expect(style).toBe('');
+    });
+
+    test('task with list colour produces correct border-left style', () => {
+        const task = { _listColor: '#f44336' };
+        const style = task._listColor ? `border-left: 3px solid ${task._listColor};` : '';
+        expect(style).toBe('border-left: 3px solid #f44336;');
+    });
+});

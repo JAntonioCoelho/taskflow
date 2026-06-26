@@ -1493,6 +1493,29 @@
     @media (max-width: 768px) {
         .search-all-btn { display: none; }
     }
+
+    /* OVERDUE SIDEBAR BADGE */
+    .nav-badge-overdue { background: var(--accent-red); color: #fff; font-size: 10px; font-weight: 700; border-radius: 8px; padding: 1px 6px; margin-left: 4px; display: none; }
+    .nav-badge-overdue.visible { display: inline-flex; align-items: center; }
+
+    /* UPCOMING VIEW */
+    .upcoming-day-header { font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; padding: 14px 8px 6px; border-bottom: 1px solid var(--border-color); margin-bottom: 6px; }
+    .upcoming-day-header.is-today { color: var(--accent-green); }
+    .upcoming-day-header.is-tomorrow { color: var(--accent-orange); }
+
+    /* LIST ACCENT COLOURS */
+    .list-color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; cursor: pointer; transition: transform 0.15s; margin-left: -4px; }
+    .list-color-dot:hover { transform: scale(1.45); }
+    .list-color-dot-empty { background: transparent; border: 1.5px dashed var(--text-secondary); opacity: 0.5; }
+    .list-color-overlay { position: fixed; inset: 0; z-index: 900; display: none; }
+    .list-color-overlay.open { display: block; }
+    .list-color-picker { position: fixed; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); z-index: 901; display: flex; gap: 8px; flex-wrap: wrap; width: 188px; }
+    .list-color-swatch { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: transform 0.15s, border-color 0.15s; flex-shrink: 0; }
+    .list-color-swatch:hover { transform: scale(1.2); border-color: #fff; }
+    .list-color-swatch-none { background: var(--bg-tertiary); border: 2px dashed var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--text-secondary); border-radius: 50%; }
+    .color-swatch { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: transform 0.15s, border-color 0.15s; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+    .color-swatch:hover { transform: scale(1.2); }
+    .color-swatch.selected { border-color: #fff; }
 </style>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1DB954">
@@ -1528,6 +1551,12 @@
                 <span class="nav-icon">⚡</span>
                 <span>Today</span>
                 <span class="nav-badge" id="badge-today">0</span>
+                <span class="nav-badge-overdue" id="badge-overdue">0</span>
+            </div>
+            <div class="nav-item" data-view="upcoming" role="button" tabindex="0" aria-label="Upcoming tasks">
+                <span class="nav-icon">📅</span>
+                <span>Upcoming</span>
+                <span class="nav-badge" id="badge-upcoming">0</span>
             </div>
             <div class="nav-item" data-view="priority" role="button" tabindex="0" aria-label="Priority tasks">
                 <span class="nav-icon">⭐</span>
@@ -1739,6 +1768,11 @@
             <div class="tab-content" id="content-done">
                 <div class="tasks-container" id="tasks-done"></div>
             </div>
+
+            <!-- UPCOMING VIEW (no tabs, accessed via sidebar) -->
+            <div class="tab-content" id="content-upcoming">
+                <div class="tasks-container" id="tasks-upcoming"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -1803,6 +1837,11 @@
     <button class="toast-undo-btn" onclick="undoDelete()">Undo</button>
 </div>
 
+<!-- LIST COLOUR PICKER OVERLAY -->
+<div class="list-color-overlay" id="list-color-overlay" onclick="closeListColorPicker()">
+    <div class="list-color-picker" id="list-color-picker" onclick="event.stopPropagation()"></div>
+</div>
+
 <script>
     // STATE
     let lists = JSON.parse(localStorage.getItem('taskLists')) || [
@@ -1812,6 +1851,7 @@
     ];
     // Migration: backfill fields added after initial release
     lists.forEach(function(l) {
+        if (l.color === undefined) l.color = null;
         l.tasks.forEach(function(t) {
             if (t.notesOpen === undefined) t.notesOpen = false;
             if (t.subtasksOpen === undefined) t.subtasksOpen = false;
@@ -1831,6 +1871,8 @@
     let selectedTaskIds = new Set();
     let dragTaskId = null;
     const TAG_COLORS = ['#e22134','#ffa500','#1DB954','#3b82f6','#8b5cf6','#ec4899'];
+    const LIST_COLORS = ['#4caf50','#2196f3','#9c27b0','#ff9800','#f44336','#e91e63','#00bcd4','#795548','#607d8b','#ff5722'];
+    let _colorPickerListId = null;
 
     // THEME
     function toggleTheme() {
@@ -2058,13 +2100,14 @@
             'today': 'Today\'s Tasks',
             'priority': 'Priority Tasks',
             'stats': 'Statistics',
-            'done': 'Completed Tasks'
+            'done': 'Completed Tasks',
+            'upcoming': 'Upcoming'
         };
         document.getElementById('view-title').textContent = titles[view];
 
         // Show/hide tabs
         const tabsContainer = document.getElementById('tabs-container');
-        if (view === 'stats' || view === 'done') {
+        if (view === 'stats' || view === 'done' || view === 'upcoming') {
             tabsContainer.style.display = 'none';
         } else {
             tabsContainer.style.display = 'flex';
@@ -2074,9 +2117,9 @@
         const searchBar = document.getElementById('header-search');
         if (searchBar) searchBar.classList.toggle('hidden', view === 'stats');
 
-        // Show cross-list toggle only on task views (not stats/done)
+        // Show cross-list toggle only on task views (not stats/done/upcoming)
         const searchAllBtn = document.getElementById('search-all-btn');
-        if (searchAllBtn) searchAllBtn.style.display = (view === 'stats' || view === 'done') ? 'none' : '';
+        if (searchAllBtn) searchAllBtn.style.display = (view === 'stats' || view === 'done' || view === 'upcoming') ? 'none' : '';
 
         // Switch tab
         switchTab(view);
@@ -2109,6 +2152,8 @@
             updateDetailedStats();
         } else if (tab === 'done') {
             renderDoneView();
+        } else if (tab === 'upcoming') {
+            renderUpcomingView();
         }
     }
 
@@ -2126,6 +2171,7 @@
                     aria-label="${safeListName}, ${incompleteTasks} task${incompleteTasks !== 1 ? 's' : ''} remaining"
                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectList(${list.id});}">
                     <span class="list-icon">${escapeHtml(list.icon)}</span>
+                    ${list.color ? `<span class="list-color-dot" style="background:${list.color}" onclick="event.stopPropagation();openListColorPicker(${list.id},this)" title="Change colour"></span>` : `<span class="list-color-dot list-color-dot-empty" onclick="event.stopPropagation();openListColorPicker(${list.id},this)" title="Set colour"></span>`}
                     <span>${safeListName}</span>
                     <span class="list-count">${incompleteTasks}</span>
                     <div class="list-actions">
@@ -2153,6 +2199,7 @@
                 id: generateTaskId(),
                 name: name,
                 icon: randomIcon,
+                color: null,
                 tasks: []
             };
             lists.push(newList);
@@ -2466,6 +2513,7 @@
         else if (currentView === 'today')    renderTasks('today');
         else if (currentView === 'priority') renderTasks('priority');
         else if (currentView === 'done')     renderDoneView();
+        else if (currentView === 'upcoming') renderUpcomingView();
         updateDetailedStats();
         updateClearCompletedBtn();
     }
@@ -2475,7 +2523,7 @@
         if (!container) return;
         let tasks = lists.flatMap(l => l.tasks
             .filter(t => t.completed)
-            .map(t => Object.assign({}, t, { _listId: l.id, _listName: l.name, _listIcon: l.icon })));
+            .map(t => Object.assign({}, t, { _listId: l.id, _listName: l.name, _listIcon: l.icon, _listColor: l.color })));
 
         if (searchQuery) {
             tasks = tasks.filter(t =>
@@ -2506,7 +2554,7 @@
             const metaRow = `<div class="task-meta">${listBadge}${dueDateHtml}${subtaskHtml}${tagPillsHtml ? `<span class="task-tags">${tagPillsHtml}</span>` : ''}</div>`;
             return `
                 <div class="task-wrapper" tabindex="0" data-task-id="${task.id}">
-                    <div class="task completed">
+                    <div class="task completed" style="${task._listColor ? `border-left: 3px solid ${task._listColor};` : ''}">
                         <div class="task-checkbox"
                             role="checkbox" aria-checked="true"
                             aria-label="Restore task"
@@ -2532,6 +2580,83 @@
         const btn = document.getElementById('search-all-btn');
         if (btn) btn.classList.toggle('active', searchAllLists);
         renderAllViews();
+    }
+
+    function renderUpcomingView() {
+        const container = document.getElementById('tasks-upcoming');
+        if (!container) return;
+        const todayStr = getTodayStr();
+        const sevenDaysLater = new Date(); sevenDaysLater.setDate(sevenDaysLater.getDate() + 7);
+        const sevenDaysStr = sevenDaysLater.toISOString().split('T')[0];
+
+        let tasks = lists.flatMap(l => l.tasks
+            .filter(t => !t.completed && t.dueDate && t.dueDate >= todayStr && t.dueDate <= sevenDaysStr)
+            .map(t => Object.assign({}, t, { _listId: l.id, _listName: l.name, _listIcon: l.icon, _listColor: l.color })));
+
+        tasks.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+
+        if (tasks.length === 0) {
+            container.innerHTML = `<div class="empty-state"><div class="empty-icon">📅</div><p>No tasks due in the next 7 days.</p></div>`;
+            return;
+        }
+
+        // Group by date
+        const groups = {};
+        tasks.forEach(t => { if (!groups[t.dueDate]) groups[t.dueDate] = []; groups[t.dueDate].push(t); });
+
+        container.innerHTML = Object.keys(groups).sort().map(date => {
+            const label = isDueToday({ dueDate: date }) ? 'Today' : formatDueDate(date);
+            const taskHtml = groups[date].map(task => {
+                const listBadge = `<span class="task-list-badge">${escapeHtml(task._listIcon || '')} ${escapeHtml(task._listName)}</span>`;
+                const tagPillsHtml = (task.tags || []).map(tagName => {
+                    const def = tagDefs.find(d => d.name === tagName);
+                    const color = def ? def.color : '#888';
+                    return `<span class="tag-pill" style="background:${color}">${escapeHtml(tagName)}</span>`;
+                }).join('');
+                const metaRow = `<div class="task-meta">${listBadge}${tagPillsHtml ? `<span class="task-tags">${tagPillsHtml}</span>` : ''}</div>`;
+                const accent = task._listColor ? `border-left: 3px solid ${task._listColor};` : '';
+                return `
+                    <div class="task-wrapper" tabindex="0" data-task-id="${task.id}">
+                        <div class="task ${task.priority ? 'priority' : ''} ${task.today ? 'today' : ''}" style="${accent}">
+                            <div class="task-checkbox"
+                                role="checkbox" aria-checked="false"
+                                aria-label="Complete task"
+                                tabindex="0"
+                                onclick="toggleTask(${task.id})"
+                                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleTask(${task.id});}"></div>
+                            <div class="task-content">
+                                <div class="task-text">${escapeHtml(task.text)}</div>
+                                ${metaRow}
+                            </div>
+                        </div>
+                    </div>`;
+            }).join('');
+            return `<div class="upcoming-day-header">${label}</div>${taskHtml}`;
+        }).join('');
+    }
+
+    function openListColorPicker(listId, dotEl) {
+        _colorPickerListId = listId;
+        const picker = document.getElementById('list-color-picker');
+        const overlay = document.getElementById('list-color-overlay');
+        picker.innerHTML = LIST_COLORS.map(c =>
+            `<div class="list-color-swatch" style="background:${c}" onclick="setListColor('${c}')" title="${c}"></div>`
+        ).join('') + `<div class="list-color-swatch list-color-swatch-none" onclick="setListColor(null)" title="Remove colour">✕</div>`;
+        const rect = dotEl.getBoundingClientRect();
+        picker.style.top = (rect.bottom + 4) + 'px';
+        picker.style.left = rect.left + 'px';
+        overlay.classList.add('open');
+    }
+
+    function setListColor(color) {
+        const list = lists.find(l => l.id === _colorPickerListId);
+        if (list) { list.color = color; saveLists(); renderLists(); }
+        closeListColorPicker();
+    }
+
+    function closeListColorPicker() {
+        document.getElementById('list-color-overlay').classList.remove('open');
+        _colorPickerListId = null;
     }
 
     // TASK ACTIONS
@@ -2696,6 +2821,17 @@
         const allCompleted = lists.flatMap(l => l.tasks).filter(t => t.completed).length;
         const doneEl = document.getElementById('badge-done');
         if (doneEl) doneEl.textContent = allCompleted;
+
+        const todayStr = getTodayStr();
+        const sevenDaysLater = new Date(); sevenDaysLater.setDate(sevenDaysLater.getDate() + 7);
+        const sevenDaysStr = sevenDaysLater.toISOString().split('T')[0];
+        const allTasks = lists.flatMap(l => l.tasks);
+        const overdueCount = allTasks.filter(t => !t.completed && t.dueDate && t.dueDate < todayStr).length;
+        const upcomingCount = allTasks.filter(t => !t.completed && t.dueDate && t.dueDate >= todayStr && t.dueDate <= sevenDaysStr).length;
+        const overdueEl = document.getElementById('badge-overdue');
+        if (overdueEl) { overdueEl.textContent = overdueCount; overdueEl.classList.toggle('visible', overdueCount > 0); }
+        const upcomingEl = document.getElementById('badge-upcoming');
+        if (upcomingEl) upcomingEl.textContent = upcomingCount;
 
         const tbAll = document.getElementById('tab-badge-all');
         if (tbAll) tbAll.textContent = incomplete || '';
