@@ -1429,14 +1429,16 @@
     .sort-select:focus { border-color: var(--accent-green); }
 
     /* TASK NOTES */
-    .notes-area { margin-top: 8px; width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 10px; color: var(--text-primary); font-size: 13px; resize: vertical; min-height: 60px; outline: none; font-family: inherit; transition: border-color 0.2s; }
-    .notes-area:focus { border-color: var(--accent-green); }
+@@@END@@@
+
     .notes-btn { background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color); }
     .notes-btn.active { color: var(--accent-green); }
-    .task-notes-section { padding: 4px 20px 12px 20px; background: var(--bg-secondary); border-top: 1px solid var(--border-color); border-radius: 0 0 8px 8px; }
+@@@END@@@
+
 
     /* SUBTASKS */
-    .subtasks-section { padding: 4px 20px 12px 20px; background: var(--bg-secondary); border-top: 1px solid var(--border-color); border-radius: 0 0 8px 8px; }
+@@@END@@@
+
     .subtask-list { list-style: none; display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
     .subtask-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); }
     .subtask-checkbox { width: 16px; height: 16px; border: 2px solid var(--text-tertiary); border-radius: 3px; flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
@@ -1449,7 +1451,8 @@
     .subtask-add-row { display: flex; gap: 6px; }
     .subtask-input { flex: 1; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 5px 10px; color: var(--text-primary); font-size: 13px; outline: none; }
     .subtask-input:focus { border-color: var(--accent-green); }
-    .subtask-add-btn { background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; padding: 5px 10px; cursor: pointer; color: var(--text-secondary); font-size: 13px; }
+@@@END@@@
+
     .subtask-progress { font-size: 11px; color: var(--text-tertiary); margin-left: 4px; display: inline-flex; align-items: center; gap: 3px; }
     .subtasks-btn { background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color); }
     .subtasks-btn.active { color: var(--accent-green); }
@@ -1513,15 +1516,14 @@
     .tab-badge:empty { display: none; }
 
     /* CROSS-LIST SEARCH TOGGLE */
-    .search-all-btn { flex-shrink: 0; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-secondary); cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s; white-space: nowrap; }
-    .search-all-btn:hover { border-color: var(--accent-green); color: var(--accent-green); }
-    .search-all-btn.active { background: var(--accent-green); color: #000; border-color: var(--accent-green); }
+@@@END@@@
+
 
     /* LIST SOURCE BADGE (shown on tasks in Done / cross-list search) */
     .task-list-badge { font-size: 11px; color: var(--text-tertiary); background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 10px; padding: 1px 7px; }
 
     @media (max-width: 768px) {
-        .search-all-btn { display: none; }
+        .view-menu-btn { display: none; }
     }
 
     /* OVERDUE SIDEBAR BADGE */
@@ -1604,12 +1606,12 @@
     .notes-preview a { color: var(--accent-green); text-decoration: underline; }
     .notes-preview ul { margin: 4px 0 0 16px; padding: 0; }
     .notes-preview li { margin-bottom: 2px; }
-    .notes-edit-hint { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; opacity: 0; transition: opacity 0.15s; }
-    .task-notes-section:hover .notes-edit-hint { opacity: 1; }
+@@@END@@@
+
 
     /* FOCUS MODE */
-    .focus-mode-btn { background: none; border: 1px solid var(--border-color); color: var(--text-secondary); border-radius: 6px; padding: 4px 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
-    .focus-mode-btn:hover, .focus-mode-btn.active { background: var(--bg-tertiary); color: var(--text-primary); }
+@@@END@@@
+
     .focus-exit-pill { position: fixed; bottom: 24px; right: 24px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 20px; padding: 8px 16px; font-size: 13px; color: var(--text-secondary); cursor: pointer; z-index: 200; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.3); transition: all 0.2s; }
     .focus-exit-pill:hover { color: var(--text-primary); background: var(--bg-tertiary); }
     body.focus-mode .focus-exit-pill { display: block; }
@@ -1617,14 +1619,13 @@
     body.focus-mode #tabs-container { display: none !important; }
     body.focus-mode .sort-bar { display: none; }
     body.focus-mode #header-search { visibility: hidden !important; pointer-events: none !important; }
-    body.focus-mode #search-all-btn { display: none !important; }
-    body.focus-mode #compact-btn { display: none !important; }
+    body.focus-mode #view-menu-btn { display: none !important; }
     body.focus-mode .task { padding: 14px 18px; }
     body.focus-mode .task-text { font-size: 15px; }
 
     /* COMPACT MODE */
-    .compact-btn { background: none; border: 1px solid var(--border-color); color: var(--text-secondary); border-radius: 6px; padding: 4px 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
-    .compact-btn:hover, .compact-btn.active { background: var(--bg-tertiary); color: var(--text-primary); }
+    .view-menu-btn { display: inline-flex; align-items: center; gap: 6px; background: none; border: 1px solid var(--border-color); color: var(--text-secondary); border-radius: 7px; padding: 0 10px; height: 30px; font-family: inherit; font-size: 12.5px; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
+    .view-menu-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
     .compact-mode .task { padding: 6px 10px; }
     .compact-mode .task-wrapper { margin-bottom: 1px; }
     .compact-mode .task-text { font-size: 13px; }
@@ -1652,12 +1653,13 @@
 
     /* PRINT — one clean list, none of the chrome */
     @media print {
-        .sidebar, .sidebar-pomodoro, .header-search, .search-all-btn, .compact-btn,
-        .focus-mode-btn, .print-btn, .radio-widget, .hamburger-btn, .tabs,
+        .sidebar, .sidebar-pomodoro, .header-search, .view-menu-btn,
+        .radio-widget, .hamburger-btn, .tabs,
         .add-task, .quick-add-hint, .sort-bar, .task-actions, .drag-handle,
         .select-mode-btn, .bulk-toolbar, .tag-filter-bar, .clear-completed-btn,
         .toast, .myday-sugg-add, .data-section, .pomo-chart, .subtask-add-row,
-        .notes-edit-hint, .pinned-divider, .modal-overlay, .templates-overlay,
+        .pinned-divider, .modal-overlay, .templates-overlay, .task-menu,
+        .palette-overlay, .detail-panel,
         .date-popover, .focus-exit-pill, .sidebar-overlay { display: none !important; }
 
         /* Repoint the palette instead of chasing every element that uses it */
@@ -1691,6 +1693,80 @@
         }
         a { color: #000 !important; text-decoration: underline; }
         @page { margin: 1.5cm; }
+    }
+
+    /* TASK CONTEXT MENU */
+    .task-menu { position: fixed; z-index: 900; display: none; min-width: 218px; padding: 5px; border-radius: 10px;
+        background: var(--bg-secondary); border: 1px solid var(--border-color); box-shadow: 0 18px 44px rgba(0,0,0,0.45); }
+    .task-menu.open { display: block; }
+    .task-menu-sep { height: 1px; background: var(--border-color); margin: 5px 9px; }
+    .task-menu-item { display: flex; align-items: center; gap: 10px; width: 100%; height: 31px; padding: 0 9px; border: none;
+        border-radius: 6px; background: none; color: var(--text-secondary); font-size: 12.5px; cursor: pointer; text-align: left; }
+    .task-menu-item span { flex: 1; }
+    .task-menu-item kbd { font-size: 10.5px; color: var(--text-tertiary); background: none; border: none; font-family: inherit; }
+    .task-menu-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .task-menu-item.danger { color: var(--accent-red); }
+
+    /* DETAIL PANEL */
+    .detail-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 368px; z-index: 700; display: none;
+        flex-direction: column; overflow-y: auto; padding: 18px 22px 40px 22px;
+        background: var(--bg-secondary); border-left: 1px solid var(--border-color); }
+    .detail-panel.open { display: flex; }
+    .detail-head { display: flex; align-items: center; gap: 6px; margin-bottom: 18px; }
+    .detail-list-name { flex: 1; font-size: 11.5px; color: var(--text-tertiary); }
+    .detail-icon-btn { width: 26px; height: 26px; border: none; border-radius: 6px; background: none; color: var(--text-tertiary);
+        display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+    .detail-icon-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .detail-title-row { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 20px; }
+    .detail-title-row .task-checkbox { margin-top: 3px; flex-shrink: 0; }
+    .detail-title { flex: 1; background: none; border: none; resize: none; overflow: hidden; color: var(--text-primary);
+        font-family: inherit; font-size: 17px; font-weight: 600; line-height: 1.32; letter-spacing: -0.2px; outline: none; padding: 0; }
+    .detail-props { display: flex; flex-direction: column; gap: 1px; margin-bottom: 20px; }
+    .detail-prop { display: flex; align-items: center; gap: 11px; width: 100%; min-height: 34px; padding: 5px 9px; border: none;
+        border-radius: 7px; background: none; color: var(--text-tertiary); font-family: inherit; font-size: 12.5px; cursor: pointer; text-align: left; }
+    .detail-prop.static { cursor: default; }
+    .detail-prop:not(.static):hover { background: var(--bg-hover); }
+    .detail-prop-label { width: 62px; flex-shrink: 0; }
+    .detail-prop-value { flex: 1; color: var(--text-primary); display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    .detail-prop-value.empty { color: var(--text-tertiary); }
+    .detail-section { margin-bottom: 20px; }
+    .detail-section-title { font-size: 10.5px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase;
+        color: var(--text-tertiary); margin-bottom: 9px; }
+    .detail-section-title span { opacity: 0.8; margin-left: 4px; }
+    .detail-progress { height: 3px; border-radius: 2px; background: var(--bg-hover); margin-bottom: 11px; overflow: hidden; }
+    .detail-progress div { height: 3px; background: var(--accent-green); transition: width 0.25s; }
+    .detail-notes { width: 100%; min-height: 96px; box-sizing: border-box; resize: vertical; padding: 9px 11px; border-radius: 8px;
+        background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);
+        font-family: inherit; font-size: 12.5px; line-height: 1.6; outline: none; }
+    .detail-notes:focus { border-color: var(--accent-green); }
+    .task.detail-selected { background: var(--bg-tertiary); box-shadow: inset 2px 0 0 var(--accent-green); }
+    body.detail-open .container { padding-right: 368px; }
+
+    /* COMMAND PALETTE */
+    .palette-overlay { position: fixed; inset: 0; z-index: 1200; display: flex; align-items: flex-start; justify-content: center;
+        padding-top: 14vh; background: rgba(0,0,0,0.55); }
+    .palette { width: min(560px, 92vw); border-radius: 13px; background: var(--bg-secondary); border: 1px solid var(--border-color);
+        box-shadow: 0 24px 64px rgba(0,0,0,0.5); overflow: hidden; display: flex; flex-direction: column; max-height: 66vh; }
+    .palette-input-row { display: flex; align-items: center; gap: 11px; padding: 14px 16px; border-bottom: 1px solid var(--border-color); color: var(--text-tertiary); }
+    .palette-input { flex: 1; background: none; border: none; outline: none; color: var(--text-primary); font-family: inherit; font-size: 14.5px; }
+    .palette-input::placeholder { color: var(--text-tertiary); }
+    .palette-list { overflow-y: auto; padding: 7px; }
+    .palette-group { font-size: 10px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-tertiary); padding: 8px 10px 5px 10px; }
+    .palette-item { display: flex; align-items: center; gap: 11px; width: 100%; height: 37px; padding: 0 10px; border: none;
+        border-radius: 8px; background: none; color: var(--text-secondary); font-family: inherit; font-size: 13px; cursor: pointer; text-align: left; }
+    .palette-item.active { background: var(--bg-hover); color: var(--text-primary); }
+    .palette-item.accent .icon { color: var(--accent-green); }
+    .palette-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .palette-hint { font-size: 11.5px; color: var(--text-tertiary); flex-shrink: 0; }
+    .palette-empty { padding: 22px; text-align: center; font-size: 13px; color: var(--text-tertiary); }
+    .palette-foot { display: flex; gap: 15px; padding: 9px 16px; border-top: 1px solid var(--border-color); background: var(--bg-primary); }
+    .palette-foot span { font-size: 10.5px; color: var(--text-tertiary); display: flex; align-items: center; gap: 5px; }
+    .palette kbd, .palette-foot kbd { font-family: inherit; font-size: 10.5px; color: var(--text-tertiary);
+        border: 1px solid var(--border-color); border-radius: 4px; padding: 1px 5px; background: none; }
+
+    @media (max-width: 1100px) {
+        .detail-panel { width: 100%; max-width: 380px; }
+        body.detail-open .container { padding-right: 0; }
     }
 
     /* MY DAY SUGGESTIONS */
@@ -1836,14 +1912,10 @@
                         onclick="clearSearch()" style="display:none"
                         aria-label="Clear search"><span data-icon="close" data-icon-size="12"></span></button>
             </div>
-            <!-- CROSS-LIST SEARCH TOGGLE -->
-            <button class="search-all-btn" id="search-all-btn" onclick="toggleSearchAllLists()" title="Search across all lists" aria-label="Toggle cross-list search"><span data-icon="globe" data-icon-size="13"></span> All lists</button>
-            <!-- COMPACT MODE TOGGLE -->
-            <button class="compact-btn" id="compact-btn" onclick="toggleCompactMode()" title="Toggle compact view" aria-label="Toggle compact view"><span data-icon="compact" data-icon-size="13"></span> Compact</button>
-            <!-- FOCUS MODE TOGGLE -->
-            <button class="focus-mode-btn" id="focus-mode-btn" onclick="toggleFocusMode()" title="Focus mode (F)" aria-label="Toggle focus mode"><span data-icon="focus" data-icon-size="13"></span> Focus</button>
-            <!-- PRINT -->
-            <button class="focus-mode-btn print-btn" id="print-btn" onclick="window.print()" title="Print this list" aria-label="Print this list"><span data-icon="printer" data-icon-size="13"></span> Print</button>
+            <!-- VIEW MENU — four loose toggles collapsed into one control -->
+            <button class="view-menu-btn" id="view-menu-btn" onclick="openViewMenu(this)" title="View options" aria-label="View options" aria-haspopup="true">
+                <span data-icon="compact" data-icon-size="13"></span> View
+            </button>
             <!-- RADIO WIDGET -->
             <div class="radio-widget" id="radio-widget">
                 <div class="radio-bars" id="radio-bars">
@@ -2027,8 +2099,10 @@
     <div class="modal shortcuts-modal">
         <div class="shortcuts-title" id="shortcuts-title"><span data-icon="keyboard" data-icon-size="16"></span> Keyboard Shortcuts</div>
         <div class="shortcuts-grid">
+            <div class="shortcut-row"><kbd>Ctrl+K</kbd><span>Command palette — search tasks, run anything</span></div>
             <div class="shortcut-row"><kbd>Ctrl+N</kbd><span>New task</span></div>
-            <div class="shortcut-row"><kbd>Ctrl+K</kbd><span>Focus search</span></div>
+            <div class="shortcut-row"><kbd>Right-click</kbd><span>Task actions menu</span></div>
+            <div class="shortcut-row"><kbd>Click a task</kbd><span>Open its detail panel</span></div>
             <div class="shortcut-row"><kbd>↑ ↓</kbd><span>Navigate tasks</span></div>
             <div class="shortcut-row"><kbd>Enter</kbd><span>Toggle complete</span></div>
             <div class="shortcut-row"><kbd>Delete</kbd><span>Delete focused task</span></div>
@@ -2103,6 +2177,32 @@
     <div class="date-popover-actions">
         <button class="date-popover-btn date-popover-save" onclick="saveDatePopover()">Set</button>
         <button class="date-popover-btn date-popover-clear" onclick="clearDatePopover()">Clear</button>
+    </div>
+</div>
+
+<!-- TASK DETAIL PANEL -->
+<aside class="detail-panel" id="detail-panel" aria-label="Task details"></aside>
+
+<!-- TASK CONTEXT MENU -->
+<div class="task-menu" id="task-menu" role="menu" aria-label="Task actions"></div>
+
+<!-- COMMAND PALETTE -->
+<div class="palette-overlay" id="palette-overlay" style="display:none" onclick="if(event.target===this)closePalette()" role="dialog" aria-modal="true" aria-label="Command palette">
+    <div class="palette">
+        <div class="palette-input-row">
+            <span data-icon="search" data-icon-size="16"></span>
+            <input type="text" id="palette-input" class="palette-input" placeholder="Search tasks, or type a command…"
+                oninput="renderPalette()" onkeydown="handlePaletteKey(event)" aria-label="Search tasks or run a command" autocomplete="off">
+            <kbd>esc</kbd>
+        </div>
+        <div class="palette-list" id="palette-list"></div>
+        <div class="palette-foot">
+            <span><kbd>↑↓</kbd> navigate</span>
+            <span><kbd>↵</kbd> open</span>
+            <span><kbd>#</kbd> tag</span>
+            <span><kbd>!</kbd> date</span>
+            <span><kbd>*</kbd> priority</span>
+        </div>
     </div>
 </div>
 
@@ -2217,8 +2317,6 @@
         if (lists.some(function(l) { return l.tasks.length > 0; })) requestPersistence();
         if (compactMode) {
             document.getElementById('content-area').classList.add('compact-mode');
-            const btn = document.getElementById('compact-btn');
-            if (btn) btn.classList.add('active');
         }
         parseHash();
         renderLists();
@@ -2519,9 +2617,9 @@
         const searchBar = document.getElementById('header-search');
         if (searchBar) searchBar.classList.toggle('hidden', view === 'stats');
 
-        // Show cross-list toggle only on task views (not stats/done/upcoming)
-        const searchAllBtn = document.getElementById('search-all-btn');
-        if (searchAllBtn) searchAllBtn.style.display = (view === 'stats' || view === 'done' || view === 'upcoming' || view === 'trash') ? 'none' : '';
+        // The view menu is irrelevant on stats
+        const viewMenuBtn = document.getElementById('view-menu-btn');
+        if (viewMenuBtn) viewMenuBtn.style.display = (view === 'stats') ? 'none' : '';
 
         // Switch tab
         switchTab(view);
@@ -2917,39 +3015,16 @@
                 `;
             }
 
-            // Subtasks section
-            const subtasksSection = (task.subtasksOpen || subtaskCount > 0) ? `
-                <div class="subtasks-section">
-                    <ul class="subtask-list">
-                        ${(task.subtasks || []).map(s => `
-                        <li class="subtask-item">
-                            <div class="subtask-checkbox ${s.completed ? 'done' : ''}" onclick="toggleSubtask(${task.id},${s.id})" role="checkbox" aria-checked="${s.completed}" title="Toggle subtask"></div>
-                            <span class="subtask-text ${s.completed ? 'done' : ''}">${escapeHtml(s.text)}</span>
-                            <button class="subtask-delete-btn" onclick="deleteSubtask(${task.id},${s.id})" aria-label="Delete subtask">${icon('close', 12)}</button>
-                        </li>`).join('')}
-                    </ul>
-                    <div class="subtask-add-row">
-                        <input type="text" class="subtask-input" id="subtask-input-${task.id}" placeholder="Add subtask…" onkeydown="if(event.key==='Enter'){addSubtask(${task.id});}" aria-label="New subtask text">
-                        <button class="subtask-add-btn" onclick="addSubtask(${task.id})">Add</button>
-                    </div>
-                </div>` : '';
-
-            // Notes section — textarea when editing, rendered markdown preview otherwise
-            const notesSection = task.notesOpen ? `
-                <div class="task-notes-section">
-                    <textarea class="notes-area" placeholder="Add a note… (supports **bold**, *italic*, - lists, [links](url))"
-                        onblur="saveNotes(${task.id}, this.value)"
-                        aria-label="Task notes">${escapeHtml(task.notes || '')}</textarea>
-                </div>` : (task.notes ? `
-                <div class="task-notes-section" onclick="toggleNotes(${task.id})" style="cursor:pointer" title="Click to edit note">
-                    <div class="notes-preview">${renderMarkdown(task.notes)}</div>
-                    <div class="notes-edit-hint">Click to edit</div>
-                </div>` : '');
+            // Notes and subtasks moved to the detail panel: a row that grows as
+            // you type pushes every row under it around while you work.
+            const openClass = detailTaskId === task.id ? ' detail-selected' : '';
+            const rowClick = selectionMode ? `toggleTaskSelection(${task.id})` : `openDetail(${task.id})`;
 
             return divider + `
                 <div class="task-wrapper" tabindex="0" data-task-id="${task.id}" ${dragAttrs}
-                    onkeydown="if(event.key==='Enter'&&!event.target.closest('.task-actions,.subtasks-section,.task-notes-section')){toggleTask(${task.id});}">
-                    <div class="${taskClass}">
+                    oncontextmenu="openTaskMenu(${task.id}, null, event)"
+                    onkeydown="if(event.key==='Enter'&&!event.target.closest('.task-actions')){openDetail(${task.id});}">
+                    <div class="${taskClass}${openClass}">
                         ${dragHandle}
                         ${selectCheckbox}
                         <div class="task-checkbox"
@@ -2957,9 +3032,9 @@
                             aria-checked="${task.completed}"
                             aria-label="${checkboxLabel}"
                             tabindex="0"
-                            onclick="${selectionMode ? `toggleTaskSelection(${task.id})` : `toggleTask(${task.id})`}"
-                            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${selectionMode ? `toggleTaskSelection(${task.id})` : `toggleTask(${task.id})`};}"></div>
-                        <div class="task-content" onclick="${selectionMode ? `toggleTaskSelection(${task.id})` : `toggleTask(${task.id})`}">
+                            onclick="event.stopPropagation();${selectionMode ? `toggleTaskSelection(${task.id})` : `toggleTask(${task.id})`}"
+                            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();${selectionMode ? `toggleTaskSelection(${task.id})` : `toggleTask(${task.id})`};}"></div>
+                        <div class="task-content" onclick="${rowClick}">
                             <div class="task-text">${escapeHtml(task.text)}</div>
                             ${metaRow}
                         </div>
@@ -2968,23 +3043,12 @@
                             ${task.today ? '<span class="task-badge" aria-label="In My Day">' + icon('bolt', 13) + '</span>' : ''}
                         </div>
                         <div class="task-actions">
-                            <button class="task-btn pin-btn ${task.pinned ? 'active' : ''}" onclick="togglePin(${task.id})" title="${task.pinned ? 'Unpin task' : 'Pin task'}" aria-label="${task.pinned ? 'Unpin task' : 'Pin to top'}">${icon('pin')}</button>
+                            <button class="task-btn date-btn ${task.dueDate ? 'active' : ''}" onclick="openDatePicker(${task.id})" title="Due date" aria-label="${task.dueDate ? 'Change due date' : 'Set due date'}">${icon('calendar')}</button>
                             <button class="task-btn priority-btn ${task.priority ? 'active' : ''}" onclick="togglePriority(${task.id})" title="Priority" aria-label="${task.priority ? 'Remove priority' : 'Set as priority'}">${icon('star')}</button>
-                            <button class="task-btn today-btn ${task.today ? 'active' : ''}" onclick="toggleToday(${task.id})" title="My Day" aria-label="${task.today ? 'Remove from My Day' : 'Add to My Day'}">${icon('bolt')}</button>
-                            <button class="task-btn subtasks-btn ${subtaskCount ? 'active' : ''}" onclick="toggleSubtasks(${task.id})" title="Subtasks" aria-label="Subtasks">${icon('subtasks')}</button>
-                            <button class="task-btn notes-btn ${task.notes ? 'active' : ''}" onclick="toggleNotes(${task.id})" title="Notes" aria-label="${task.notes ? 'Edit notes' : 'Add notes'}">${icon('note')}</button>
-                            <button class="task-btn tag-btn ${(task.tags && task.tags.length) ? 'active' : ''}" onclick="openTagPicker(${task.id})" title="Tags" aria-label="Tags">${icon('tag')}</button>
-                            <button class="task-btn recur-btn ${task.recurrence ? 'active' : ''}" onclick="cycleRecurrence(${task.id})" title="${task.recurrence ? 'Recurrence: ' + task.recurrence + ' (click to change)' : 'Set recurrence'}" aria-label="Set recurrence">${icon('repeat')}</button>
-                            <button class="task-btn date-btn ${task.dueDate ? 'active' : ''}" onclick="openDatePicker(${task.id})" title="Set due date" aria-label="${task.dueDate ? 'Change due date' : 'Set due date'}">${icon('calendar')}</button>
                             <button class="task-btn pomo-btn ${pomodoroTaskId === task.id ? 'active' : ''}" onclick="startPomodoroFor(${task.id})" title="${pomodoroTaskId === task.id && pomodoroIsRunning ? 'Pause timer' : 'Start a pomodoro on this task'}" aria-label="Start pomodoro for this task">${icon(pomodoroTaskId === task.id && pomodoroIsRunning ? 'pause' : 'timer')}</button>
-                            <button class="task-btn save-template-btn" onclick="saveAsTemplate(${task.id})" title="Save as template" aria-label="Save as template">${icon('template')}</button>
-                            <button class="task-btn edit-btn" onclick="editTask(${task.id})" title="Edit" aria-label="Edit task">${icon('edit')}</button>
-                            <button class="task-btn" onclick="moveTask(${task.id})" title="Move to list" aria-label="Move to another list">${icon('move')}</button>
-                            <button class="task-btn delete-btn" onclick="deleteTask(${task.id})" title="Delete" aria-label="Delete task">${icon('trash')}</button>
+                            <button class="task-btn menu-btn" onclick="openTaskMenu(${task.id}, this)" title="More actions" aria-label="Task actions">${icon('more')}</button>
                         </div>
                     </div>
-                    ${subtasksSection}
-                    ${notesSection}
                 </div>
             `;
         }).join('') + suggestionsHtml;
@@ -3108,10 +3172,33 @@
         }).join('');
     }
 
+    // VIEW MENU — reuses the task menu's chrome; these are page-level toggles.
+    function openViewMenu(anchorEl) {
+        const menu = document.getElementById('task-menu');
+        const items = [
+            { label: 'Search all lists', icon: 'globe',   on: searchAllLists, run: 'toggleSearchAllLists()' },
+            { label: 'Compact rows',     icon: 'compact', on: compactMode,    run: 'toggleCompactMode()' },
+            { label: 'Focus mode',       icon: 'focus',   on: focusMode,      keys: 'F', run: 'toggleFocusMode()' },
+            { sep: true },
+            { label: 'Print this list',  icon: 'printer', run: 'window.print()' }
+        ];
+        menu.innerHTML = items.map(function(it) {
+            if (it.sep) return '<div class="task-menu-sep"></div>';
+            return `<button type="button" class="task-menu-item" onclick="closeTaskMenu(); ${it.run};">
+                ${icon(it.icon, 14)}<span>${it.label}</span>
+                ${it.on ? icon('check', 13) : (it.keys ? `<kbd>${it.keys}</kbd>` : '')}
+            </button>`;
+        }).join('');
+        menu.classList.add('open');
+        const rect = anchorEl.getBoundingClientRect();
+        const w = menu.offsetWidth || 218;
+        menu.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - w - 8)) + 'px';
+        menu.style.top = (rect.bottom + 6) + 'px';
+        setTimeout(function() { document.addEventListener('mousedown', _taskMenuOutside); }, 0);
+    }
+
     function toggleSearchAllLists() {
         searchAllLists = !searchAllLists;
-        const btn = document.getElementById('search-all-btn');
-        if (btn) btn.classList.toggle('active', searchAllLists);
         renderAllViews();
     }
 
@@ -3190,6 +3277,219 @@
     function closeListColorPicker() {
         document.getElementById('list-color-overlay').classList.remove('open');
         _colorPickerListId = null;
+    }
+
+    /**
+     * TASK ACTIONS — declared once, rendered by both the row context menu and
+     * the command palette. The row itself shows only the three that get used
+     * every day; the rest live behind ⋯, right-click and ⌘K.
+     */
+    const TASK_ACTIONS = [
+        { id: 'today',    label: 'Add to My Day',    icon: 'bolt',     keys: 'T',  run: toggleToday,
+          labelFor: t => t.today ? 'Remove from My Day' : 'Add to My Day' },
+        { id: 'priority', label: 'Priority',         icon: 'star',     keys: 'P',  run: togglePriority,
+          labelFor: t => t.priority ? 'Remove priority' : 'Priority' },
+        { id: 'pin',      label: 'Pin to top',       icon: 'pin',      keys: '⇧P', run: togglePin,
+          labelFor: t => t.pinned ? 'Unpin' : 'Pin to top' },
+        { sep: true },
+        { id: 'due',      label: 'Due date…',        icon: 'calendar', keys: 'D',  run: openDatePicker },
+        { id: 'repeat',   label: 'Repeat',           icon: 'repeat',   keys: 'R',  run: cycleRecurrence,
+          labelFor: t => t.recurrence ? 'Repeat: ' + t.recurrence : 'Repeat' },
+        { id: 'tags',     label: 'Tags…',            icon: 'tag',      keys: '#',  run: openTagPicker },
+        { id: 'notes',    label: 'Notes',            icon: 'note',     keys: 'N',  run: openDetailNotes },
+        { id: 'subtasks', label: 'Subtasks',         icon: 'subtasks', keys: 'S',  run: openDetailSubtasks },
+        { sep: true },
+        { id: 'pomodoro', label: 'Start pomodoro',   icon: 'timer',    keys: 'F',  run: startPomodoroFor,
+          labelFor: t => (pomodoroTaskId === t.id && pomodoroIsRunning) ? 'Pause pomodoro' : 'Start pomodoro' },
+        { id: 'move',     label: 'Move to list…',    icon: 'move',     keys: 'M',  run: moveTask },
+        { id: 'template', label: 'Save as template', icon: 'template',             run: saveAsTemplate },
+        { id: 'edit',     label: 'Rename',           icon: 'edit',     keys: 'E',  run: editTask },
+        { sep: true },
+        { id: 'delete',   label: 'Delete',           icon: 'trash',    keys: 'Del', run: deleteTask, danger: true }
+    ];
+
+    let _menuTaskId = null;
+    let detailTaskId = null;
+
+    /**
+     * DETAIL PANEL — the row is for reading, the panel is for editing.
+     * Notes and subtasks used to expand inside the row, which made every row a
+     * different height and pushed the rest of the list around as you worked.
+     */
+    function openDetail(taskId) {
+        detailTaskId = taskId;
+        renderDetail();
+    }
+
+    function closeDetail() {
+        detailTaskId = null;
+        renderDetail();
+        renderAllViews();
+    }
+
+    function openDetailNotes(taskId) {
+        openDetail(taskId);
+        setTimeout(function() {
+            const el = document.getElementById('detail-notes');
+            if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+        }, 30);
+    }
+
+    function openDetailSubtasks(taskId) {
+        openDetail(taskId);
+        setTimeout(function() {
+            const el = document.getElementById('detail-subtask-input');
+            if (el) el.focus();
+        }, 30);
+    }
+
+    function renderDetail() {
+        const panel = document.getElementById('detail-panel');
+        if (!panel) return;
+        const list = detailTaskId !== null ? findListForTask(detailTaskId) : null;
+        const task = list ? list.tasks.find(t => t.id === detailTaskId) : null;
+        if (!task) {
+            panel.classList.remove('open');
+            panel.innerHTML = '';
+            detailTaskId = null;
+            document.body.classList.remove('detail-open');
+            return;
+        }
+        document.body.classList.add('detail-open');
+        panel.classList.add('open');
+
+        const rows = [
+            ['calendar', 'Due',    task.dueDate ? formatDueDate(task.dueDate) : 'None', 'openDatePicker(' + task.id + ')'],
+            ['clock',    'Remind', task.remindTime || 'None', 'openDatePicker(' + task.id + ')'],
+            ['repeat',   'Repeat', task.recurrence || 'Never', 'cycleRecurrence(' + task.id + ')'],
+            ['move',     'List',   list.name, 'moveTask(' + task.id + ')']
+        ];
+
+        const tagPills = (task.tags || []).map(function(name) {
+            const def = tagDefs.find(d => d.name === name);
+            return '<span class="tag-pill" style="color:' + (def ? def.color : '#888') + '">' + escapeHtml(name) + '</span>';
+        }).join('');
+
+        const subtasks = task.subtasks || [];
+        const done = subtasks.filter(s => s.completed).length;
+
+        panel.innerHTML = `
+            <div class="detail-head">
+                <span class="detail-list-name">${escapeHtml(list.icon || '')} ${escapeHtml(list.name)}</span>
+                <button type="button" class="detail-icon-btn" onclick="openTaskMenu(${task.id}, this)" aria-label="Task actions">${icon('more', 15)}</button>
+                <button type="button" class="detail-icon-btn" onclick="closeDetail()" aria-label="Close panel">${icon('close', 15)}</button>
+            </div>
+
+            <div class="detail-title-row">
+                <div class="task-checkbox" role="checkbox" aria-checked="${task.completed}" tabindex="0"
+                    aria-label="${task.completed ? 'Mark as incomplete' : 'Mark as complete'}"
+                    onclick="toggleTask(${task.id}); renderDetail();"
+                    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleTask(${task.id});renderDetail();}"></div>
+                <textarea class="detail-title" rows="1" aria-label="Task name"
+                    onblur="saveDetailTitle(${task.id}, this.value)">${escapeHtml(task.text)}</textarea>
+            </div>
+
+            <div class="detail-props">
+                ${rows.map(r => `
+                    <button type="button" class="detail-prop" onclick="${r[3]}">
+                        ${icon(r[0], 14)}<span class="detail-prop-label">${r[1]}</span>
+                        <span class="detail-prop-value ${(r[2] === 'None' || r[2] === 'Never') ? 'empty' : ''}">${escapeHtml(r[2])}</span>
+                    </button>`).join('')}
+                <button type="button" class="detail-prop" onclick="openTagPicker(${task.id})">
+                    ${icon('tag', 14)}<span class="detail-prop-label">Tags</span>
+                    <span class="detail-prop-value ${tagPills ? '' : 'empty'}">${tagPills || 'None'}</span>
+                </button>
+                ${task.pomodoros ? `<div class="detail-prop static">
+                    ${icon('timer', 14)}<span class="detail-prop-label">Focus</span>
+                    <span class="detail-prop-value">${task.pomodoros} session${task.pomodoros !== 1 ? 's' : ''}</span>
+                </div>` : ''}
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-section-title">Subtasks${subtasks.length ? ' <span>' + done + '/' + subtasks.length + '</span>' : ''}</div>
+                ${subtasks.length ? `<div class="detail-progress"><div style="width:${Math.round((done / subtasks.length) * 100)}%"></div></div>` : ''}
+                <ul class="subtask-list">
+                    ${subtasks.map(s => `
+                    <li class="subtask-item">
+                        <div class="subtask-checkbox ${s.completed ? 'done' : ''}" role="checkbox" aria-checked="${s.completed}"
+                            onclick="toggleSubtask(${task.id},${s.id}); renderDetail();" title="Toggle subtask"></div>
+                        <span class="subtask-text ${s.completed ? 'done' : ''}">${escapeHtml(s.text)}</span>
+                        <button class="subtask-delete-btn" onclick="deleteSubtask(${task.id},${s.id}); renderDetail();" aria-label="Delete subtask">${icon('close', 12)}</button>
+                    </li>`).join('')}
+                </ul>
+                <div class="subtask-add-row">
+                    <input type="text" class="subtask-input" id="detail-subtask-input" placeholder="Add subtask…"
+                        onkeydown="if(event.key==='Enter'){addSubtask(${task.id}, 'detail-subtask-input');}"
+                        aria-label="New subtask text">
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-section-title">Notes</div>
+                <textarea class="detail-notes" id="detail-notes" placeholder="Add a note… (**bold**, *italic*, - lists, [links](url))"
+                    onblur="saveNotes(${task.id}, this.value); renderAllViews();" aria-label="Task notes">${escapeHtml(task.notes || '')}</textarea>
+            </div>
+        `;
+
+        const ta = panel.querySelector('.detail-title');
+        if (ta) { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }
+    }
+
+    function saveDetailTitle(taskId, value) {
+        const text = value.trim();
+        if (!text) { renderDetail(); return; }
+        const list = findListForTask(taskId);
+        const task = list ? list.tasks.find(t => t.id === taskId) : null;
+        if (!task || task.text === text) return;
+        task.text = text;
+        saveLists();
+        renderAllViews();
+        updateAllStats();
+    }
+
+    function openTaskMenu(taskId, anchorEl, ev) {
+        if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+        const list = findListForTask(taskId);
+        const task = list ? list.tasks.find(t => t.id === taskId) : null;
+        if (!task) return;
+        _menuTaskId = taskId;
+        const menu = document.getElementById('task-menu');
+        menu.innerHTML = TASK_ACTIONS.map(function(a) {
+            if (a.sep) return '<div class="task-menu-sep"></div>';
+            const label = a.labelFor ? a.labelFor(task) : a.label;
+            return `<button type="button" class="task-menu-item ${a.danger ? 'danger' : ''}" onclick="runTaskAction('${a.id}')">
+                ${icon(a.icon, 14)}<span>${escapeHtml(label)}</span>${a.keys ? `<kbd>${a.keys}</kbd>` : ''}
+            </button>`;
+        }).join('');
+
+        menu.classList.add('open');
+        const rect = anchorEl
+            ? anchorEl.getBoundingClientRect()
+            : { bottom: ev.clientY, left: ev.clientX, right: ev.clientX };
+        const w = menu.offsetWidth || 220;
+        const h = menu.offsetHeight || 380;
+        menu.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - w - 8)) + 'px';
+        menu.style.top = (rect.bottom + h > window.innerHeight ? Math.max(8, window.innerHeight - h - 8) : rect.bottom + 4) + 'px';
+        setTimeout(function() { document.addEventListener('mousedown', _taskMenuOutside); }, 0);
+    }
+
+    function _taskMenuOutside(e) {
+        const menu = document.getElementById('task-menu');
+        if (!menu.contains(e.target)) closeTaskMenu();
+    }
+
+    function closeTaskMenu() {
+        const menu = document.getElementById('task-menu');
+        if (menu) menu.classList.remove('open');
+        document.removeEventListener('mousedown', _taskMenuOutside);
+        _menuTaskId = null;
+    }
+
+    function runTaskAction(actionId, taskId) {
+        const id = taskId !== undefined ? taskId : _menuTaskId;
+        const action = TASK_ACTIONS.find(a => a.id === actionId);
+        closeTaskMenu();
+        if (action && id !== null) action.run(id);
     }
 
     // TASK ACTIONS
@@ -3673,22 +3973,7 @@
     }
 
     // TASK NOTES
-    function toggleNotes(taskId) {
-        const list = findListForTask(taskId);
-        if (!list) return;
-        const task = list.tasks.find(t => t.id === taskId);
-        if (!task) return;
-        task.notesOpen = !task.notesOpen;
-        renderAllViews();
-        if (task.notesOpen) {
-            setTimeout(function() {
-                const wrapper = document.querySelector(`.task-wrapper[data-task-id="${taskId}"]`);
-                const el = wrapper ? wrapper.querySelector('.notes-area') : null;
-                if (el) el.focus();
-            }, 50);
-        }
-    }
-
+    // Notes live in the detail panel now — openDetailNotes() replaces toggleNotes().
     function saveNotes(taskId, value) {
         const list = findListForTask(taskId);
         if (!list) return;
@@ -3700,24 +3985,10 @@
         renderAllViews();
     }
 
-    // SUBTASKS
-    function toggleSubtasks(taskId) {
-        const list = findListForTask(taskId);
-        if (!list) return;
-        const task = list.tasks.find(t => t.id === taskId);
-        if (!task) return;
-        task.subtasksOpen = !task.subtasksOpen;
-        renderAllViews();
-        if (task.subtasksOpen) {
-            setTimeout(function() {
-                const inp = document.getElementById('subtask-input-' + taskId);
-                if (inp) inp.focus();
-            }, 50);
-        }
-    }
-
-    function addSubtask(taskId) {
-        const input = document.getElementById('subtask-input-' + taskId);
+    // SUBTASKS — openDetailSubtasks() replaces toggleSubtasks()
+    function addSubtask(taskId, inputId) {
+        const fieldId = inputId || ('subtask-input-' + taskId);
+        const input = document.getElementById(fieldId);
         const text = input ? input.value.trim() : '';
         if (!text) return;
         const list = findListForTask(taskId);
@@ -3729,9 +4000,10 @@
         task.subtasksOpen = true;
         saveLists();
         renderAllViews();
+        if (detailTaskId === taskId) renderDetail();
         // Re-focus input after render
         setTimeout(function() {
-            const inp = document.getElementById('subtask-input-' + taskId);
+            const inp = document.getElementById(fieldId);
             if (inp) inp.focus();
         }, 50);
     }
@@ -4191,8 +4463,6 @@
     function toggleFocusMode() {
         focusMode = !focusMode;
         document.body.classList.toggle('focus-mode', focusMode);
-        const btn = document.getElementById('focus-mode-btn');
-        if (btn) btn.classList.toggle('active', focusMode);
     }
 
     // PIN TASKS
@@ -4213,7 +4483,6 @@
         compactMode = !compactMode;
         localStorage.setItem('compactMode', compactMode);
         document.getElementById('content-area').classList.toggle('compact-mode', compactMode);
-        document.getElementById('compact-btn').classList.toggle('active', compactMode);
     }
 
     // TASK TEMPLATES
@@ -4451,9 +4720,178 @@
         resetPomodoro();
     }
 
+    /**
+     * COMMAND PALETTE — one input in place of a row of toggles.
+     * Empty: the global commands. Typing: matching tasks across every list,
+     * then the commands whose label matches. Enter opens the task's panel or
+     * runs the command; typing then pressing ⌘Enter creates a task instead.
+     */
+    const GLOBAL_COMMANDS = [
+        { label: 'Go to All Tasks',   icon: 'list',        run: () => switchView('all') },
+        { label: 'Go to My Day',      icon: 'bolt',        run: () => switchView('today') },
+        { label: 'Go to Upcoming',    icon: 'calendar',    run: () => switchView('upcoming') },
+        { label: 'Go to Priority',    icon: 'star',        run: () => switchView('priority') },
+        { label: 'Go to Done',        icon: 'checkCircle', run: () => switchView('done') },
+        { label: 'Go to Trash',       icon: 'trash',       run: () => switchView('trash') },
+        { label: 'Go to Statistics',  icon: 'chart',       run: () => switchView('stats') },
+        { label: 'New list',          icon: 'plus',        run: () => addNewList() },
+        { label: 'Toggle focus mode', icon: 'focus',       keys: 'F', run: () => toggleFocusMode() },
+        { label: 'Toggle compact view', icon: 'compact',   run: () => toggleCompactMode() },
+        { label: 'Toggle theme',      icon: 'sun',         run: () => toggleTheme() },
+        { label: 'Templates',         icon: 'template',    run: () => openTemplates() },
+        { label: 'Print this list',   icon: 'printer',     run: () => window.print() },
+        { label: 'Export JSON',       icon: 'download',    run: () => exportData() },
+        { label: 'Keyboard shortcuts', icon: 'keyboard', keys: '?', run: () => { document.getElementById('shortcuts-overlay').style.display = 'flex'; } }
+    ];
+
+    let paletteOpen = false;
+    let paletteIndex = 0;
+    let paletteItems = [];
+
+    function openPalette() {
+        paletteOpen = true;
+        paletteIndex = 0;
+        const overlay = document.getElementById('palette-overlay');
+        const input = document.getElementById('palette-input');
+        overlay.style.display = 'flex';
+        input.value = '';
+        renderPalette();
+        setTimeout(function() { input.focus(); }, 10);
+    }
+
+    function closePalette() {
+        paletteOpen = false;
+        const overlay = document.getElementById('palette-overlay');
+        if (overlay) overlay.style.display = 'none';
+    }
+
+    function paletteQuery() {
+        const el = document.getElementById('palette-input');
+        return el ? el.value.trim() : '';
+    }
+
+    function buildPaletteItems(q) {
+        const query = q.toLowerCase();
+        const items = [];
+
+        if (query) {
+            const parsed = parseQuickAdd(q);
+            if (parsed.text) {
+                const target = lists.find(l => l.id === currentListId);
+                items.push({
+                    group: 'Create',
+                    icon: 'plus',
+                    accent: true,
+                    label: 'New task “' + parsed.text + '”' + (target ? ' in ' + target.name : ''),
+                    keys: '⌘↵',
+                    run: function() { addTaskFromText(q); }
+                });
+            }
+            lists.forEach(function(l) {
+                l.tasks.forEach(function(t) {
+                    if (items.filter(i => i.group === 'Tasks').length >= 8) return;
+                    if (!t.text.toLowerCase().includes(query)) return;
+                    items.push({
+                        group: 'Tasks',
+                        icon: t.completed ? 'checkCircle' : 'circle',
+                        label: t.text,
+                        hint: (t.dueDate ? formatDueDate(t.dueDate) + ' · ' : '') + l.name,
+                        run: function() { setCurrentList(l.id); switchView('all'); openDetail(t.id); }
+                    });
+                });
+            });
+        }
+
+        GLOBAL_COMMANDS.forEach(function(c) {
+            if (query && !c.label.toLowerCase().includes(query)) return;
+            items.push({ group: 'Commands', icon: c.icon, label: c.label, keys: c.keys, run: c.run });
+        });
+
+        return items.slice(0, 20);
+    }
+
+    function renderPalette() {
+        const listEl = document.getElementById('palette-list');
+        if (!listEl) return;
+        paletteItems = buildPaletteItems(paletteQuery());
+        if (paletteIndex >= paletteItems.length) paletteIndex = Math.max(0, paletteItems.length - 1);
+
+        if (paletteItems.length === 0) {
+            listEl.innerHTML = '<div class="palette-empty">No matches.</div>';
+            return;
+        }
+
+        let lastGroup = null;
+        listEl.innerHTML = paletteItems.map(function(item, i) {
+            const head = item.group !== lastGroup ? `<div class="palette-group">${item.group}</div>` : '';
+            lastGroup = item.group;
+            return head + `
+                <button type="button" class="palette-item ${i === paletteIndex ? 'active' : ''} ${item.accent ? 'accent' : ''}"
+                    onmousemove="setPaletteIndex(${i})" onclick="runPaletteItem(${i})">
+                    ${icon(item.icon, 15)}
+                    <span class="palette-label">${escapeHtml(item.label)}</span>
+                    ${item.hint ? `<span class="palette-hint">${escapeHtml(item.hint)}</span>` : ''}
+                    ${item.keys ? `<kbd>${item.keys}</kbd>` : ''}
+                </button>`;
+        }).join('');
+
+        const active = listEl.querySelector('.palette-item.active');
+        if (active && active.scrollIntoView) active.scrollIntoView({ block: 'nearest' });
+    }
+
+    function setPaletteIndex(i) {
+        if (i === paletteIndex) return;
+        paletteIndex = i;
+        renderPalette();
+    }
+
+    function runPaletteItem(i) {
+        const item = paletteItems[i];
+        closePalette();
+        if (item) item.run();
+    }
+
+    function handlePaletteKey(e) {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            paletteIndex = Math.min(paletteIndex + 1, paletteItems.length - 1);
+            renderPalette();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            paletteIndex = Math.max(paletteIndex - 1, 0);
+            renderPalette();
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if ((e.metaKey || e.ctrlKey) && paletteQuery()) {
+                const text = paletteQuery();
+                closePalette();
+                addTaskFromText(text);
+                return;
+            }
+            runPaletteItem(paletteIndex);
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            closePalette();
+        }
+    }
+
+    // Shared by the palette and the header input, so quick-add syntax works in both.
+    function addTaskFromText(text) {
+        const input = document.getElementById('task-input');
+        if (!input) return;
+        const previous = input.value;
+        input.value = text;
+        addTask();
+        if (input.value === text) input.value = previous;
+        if (currentView !== 'all' && currentView !== 'today') switchView('all');
+    }
+
     // KEYBOARD SHORTCUTS
     document.addEventListener('keydown', function(e) {
         const inInput = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
+        if (paletteOpen) return;
+        if (e.key === 'Escape') { closeTaskMenu(); if (detailTaskId !== null) closeDetail(); }
+
         // Escape: close modals / clear search focus
         if (e.key === 'Escape') {
             if (document.getElementById('date-popover').classList.contains('open')) { closeDatePopover(); return; }
@@ -4486,11 +4924,11 @@
                 if (inp) inp.focus();
             }, currentView !== 'all' ? 50 : 0);
         }
-        // Ctrl/Cmd+K or Ctrl+/: focus search
+        // Ctrl/Cmd+K or Ctrl+/: the command palette
         if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === '/')) {
             e.preventDefault();
-            const inp = document.getElementById('search-input');
-            if (inp) inp.focus();
+            if (paletteOpen) closePalette(); else openPalette();
+            return;
         }
         // Arrow navigation within task list
         if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && !inInput) {

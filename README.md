@@ -4,10 +4,12 @@
 [![Security](https://github.com/JAntonioCoelho/taskflow/workflows/Security/badge.svg)](https://github.com/JAntonioCoelho/taskflow/actions)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A modern, sleek task management application with dark/light mode, inspired by Spotify and Instagram design.
+A keyboard-first task manager that runs entirely in your browser, with a
+command palette, a focus timer that attaches to a task, and no server anywhere.
 
 ## ✨ Features
 
+- ⌘K command palette — search every list, or run any command
 - ✅ Create, edit, and delete tasks
 - ⚡ Quick-add syntax — `#tag`, `!tomorrow`, `*`, `^` straight from the input
 - ⭐ Mark tasks as priority
@@ -89,14 +91,29 @@ Call the bank #work #urgent !tomorrow *
 ```
 
 ### Managing Tasks
-- **Complete**: Click the circle checkbox
-- **Priority**: Click the ⭐ button
-- **My Day**: Click the ⚡ button to commit to it today
-- **Pomodoro**: Click the 🍅 button to run the timer on that task
-- **Due date & reminder**: Click the 📅 button, or click an existing date
-- **Repeat**: Click 🔁 to cycle daily → weekly → monthly → yearly → off
-- **Edit**: Click the ✏️ button
-- **Delete**: Click the 🗑️ button — recoverable from Trash for 30 days
+
+A task row shows three actions on hover — due date, priority and pomodoro.
+Everything else lives in one of three places:
+
+- **Click the row** to open its detail panel: title, due date, reminder,
+  repeat, list, tags, subtasks and notes, each with a label.
+- **Right-click the row** (or the ⋯ button) for the full action menu, with the
+  keyboard shortcut for each one shown beside it.
+- **⌘K / Ctrl+K** for the command palette.
+
+**Complete** stays where it always was: the circle on the left.
+
+### The command palette
+
+`⌘K` (or `Ctrl+K`) opens it. Empty, it lists every command — switch view, new
+list, toggle theme, print, export, focus mode. Typing searches task names
+across every list and shows the matching commands underneath.
+
+The first result is always *New task "…"*, and it understands the same
+quick-add syntax as the main input, so `⌘K renda #casa !+2d ⏎` creates the task
+without leaving the keyboard.
+
+`↑` `↓` move, `↵` opens, `esc` closes.
 
 ### My Day
 
@@ -135,8 +152,9 @@ timer or charts, just the tasks with their dates and tags in black on white.
 
 ### Organizing
 - Use the sidebar to switch between lists
-- Create custom lists with ➕ New List
+- Create custom lists with **New List**
 - Filter by "All", "My Day", or "Priority"
+- **View** in the header holds cross-list search, compact rows, focus mode and print
 - View statistics in the Stats tab
 
 ### Theme Toggle
@@ -218,8 +236,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- Design inspired by Spotify and Instagram
-- Icons: Native emoji
+- Typeface: [Schibsted Grotesk](https://fonts.google.com/specimen/Schibsted+Grotesk)
+- Icons: hand-rolled inline SVG, no icon library
 - Open source community
 
 ## 👤 Author
