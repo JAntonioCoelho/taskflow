@@ -1033,7 +1033,6 @@
             padding-right: 16px;
         }
 
-@@@END@@@
 
 
         /* Larger touch targets */
@@ -1386,15 +1385,12 @@
     .sort-select:focus { border-color: var(--accent-green); }
 
     /* TASK NOTES */
-@@@END@@@
 
     .notes-btn { background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color); }
     .notes-btn.active { color: var(--accent-green); }
-@@@END@@@
 
 
     /* SUBTASKS */
-@@@END@@@
 
     .subtask-list { list-style: none; display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
     .subtask-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); }
@@ -1408,7 +1404,6 @@
     .subtask-add-row { display: flex; gap: 6px; }
     .subtask-input { flex: 1; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 5px 10px; color: var(--text-primary); font-size: 13px; outline: none; }
     .subtask-input:focus { border-color: var(--accent-green); }
-@@@END@@@
 
     .subtask-progress { font-size: 11px; color: var(--text-tertiary); margin-left: 4px; display: inline-flex; align-items: center; gap: 3px; }
     .subtasks-btn { background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color); }
@@ -1480,7 +1475,6 @@
     .tab-badge:empty { display: none; }
 
     /* CROSS-LIST SEARCH TOGGLE */
-@@@END@@@
 
 
     /* LIST SOURCE BADGE (shown on tasks in Done / cross-list search) */
@@ -1570,16 +1564,18 @@
     .notes-preview a { color: var(--accent-green); text-decoration: underline; }
     .notes-preview ul { margin: 4px 0 0 16px; padding: 0; }
     .notes-preview li { margin-bottom: 2px; }
-@@@END@@@
 
 
     /* FOCUS MODE */
-@@@END@@@
 
     .focus-exit-pill { position: fixed; bottom: 24px; right: 24px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 20px; padding: 8px 16px; font-size: 13px; color: var(--text-secondary); cursor: pointer; z-index: 200; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.3); transition: all 0.2s; }
     .focus-exit-pill:hover { color: var(--text-primary); background: var(--bg-tertiary); }
     body.focus-mode .focus-exit-pill { display: block; }
     body.focus-mode .sidebar { display: none !important; }
+    /* Hiding the sidebar does not remove its grid column, so the content stayed
+       pinned in a 260px strip with the rest of the screen empty. Broken since
+       focus mode shipped; invisible on phones, where the grid is one column. */
+    body.focus-mode .container { grid-template-columns: 1fr; }
     body.focus-mode #tabs-container { display: none !important; }
     body.focus-mode .sort-bar { display: none; }
     body.focus-mode #header-search { visibility: hidden !important; pointer-events: none !important; }
