@@ -345,7 +345,14 @@
         padding: 16px 32px 0;
         background: var(--bg-secondary);
         transition: background 0.3s ease;
+        /* Narrow screens cannot fit four tabs; without this the last one was
+           clipped and unreachable rather than scrolled to. */
+        overflow-x: auto;
+        scrollbar-width: none;
     }
+
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab-btn { flex-shrink: 0; }
 
     .tab-btn {
         padding: 12px 24px;
@@ -399,6 +406,7 @@
 
     .add-task input {
         flex: 1;
+        min-width: 0;
         padding: 12px 20px;
         background: transparent;
         border: none;
@@ -412,6 +420,7 @@
     }
 
     .add-task button {
+        flex-shrink: 0;
         padding: 12px 28px;
         background: var(--accent-green);
         color: #000000;
@@ -538,76 +547,29 @@
         opacity: 1;
     }
 
+    /* One quiet button; state is the icon's colour, not a filled disc.
+       The filled variants only ever showed on hover, so nobody noticed how
+       loud they were until touch — where there is no hover to hide behind. */
     .task-btn {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        border-radius: 7px;
         border: none;
+        padding: 0;
+        background: none;
+        color: var(--text-tertiary);
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 14px;
-        transition: all 0.2s;
+        transition: background 0.15s, color 0.15s;
     }
 
-    .priority-btn {
-        background: var(--bg-tertiary);
-        color: var(--accent-red);
-        border: 1px solid var(--border-color);
-    }
-
-    .priority-btn:hover {
-        background: var(--accent-red);
-        color: #ffffff;
-        transform: scale(1.1);
-    }
-
-    .priority-btn.active {
-        background: var(--accent-red);
-        color: #ffffff;
-    }
-
-    .today-btn {
-        background: var(--bg-tertiary);
-        color: var(--accent-green);
-        border: 1px solid var(--border-color);
-    }
-
-    .today-btn:hover {
-        background: var(--accent-green);
-        color: #000000;
-        transform: scale(1.1);
-    }
-
-    .today-btn.active {
-        background: var(--accent-green);
-        color: #000000;
-    }
-
-    .edit-btn {
-        background: var(--bg-tertiary);
-        color: var(--text-secondary);
-        border: 1px solid var(--border-color);
-    }
-
-    .edit-btn:hover {
-        background: var(--bg-hover);
-        color: var(--text-primary);
-        transform: scale(1.1);
-    }
-
-    .delete-btn {
-        background: var(--bg-tertiary);
-        color: var(--accent-red);
-        border: 1px solid var(--border-color);
-    }
-
-    .delete-btn:hover {
-        background: var(--accent-red);
-        color: #ffffff;
-        transform: scale(1.1);
-    }
+    .task-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .task-btn.active { color: var(--accent-green); }
+    .priority-btn.active { color: var(--accent-orange); }
+    .pomo-btn.active { color: var(--accent-coral); }
+    .delete-btn:hover { color: var(--accent-red); }
 
     /* EDIT INPUT */
     .edit-task-input {
@@ -1071,7 +1033,9 @@
             padding-right: 16px;
         }
 
-        .radio-widget {
+        /* Scoped so the later .radio-widget rule cannot win on source order —
+           this was meant to be hidden on phones and quietly never was. */
+        .header .radio-widget {
             display: none;
         }
 
@@ -1079,8 +1043,11 @@
         .task-btn {
             width: 40px;
             height: 40px;
-            font-size: 16px;
         }
+
+        .add-task { gap: 6px; padding: 6px; }
+        .add-task input { padding: 10px 14px; }
+        .add-task button { padding: 10px 18px; }
 
         .task-checkbox {
             width: 28px;
@@ -1285,14 +1252,7 @@
         box-shadow: inset 2px 0 0 var(--accent-coral);
     }
 
-    .date-btn {
-        background: var(--bg-tertiary);
-        color: var(--text-secondary);
-        border: 1px solid var(--border-color);
-    }
-
-    .date-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
-    .date-btn.active { color: var(--accent-orange); border-color: var(--accent-orange); }
+    .date-btn.active { color: var(--accent-green); }
 
     /* EXPORT / IMPORT */
     .data-section {
@@ -1504,10 +1464,17 @@
     .pomo-bar-label { font-size: 10px; color: var(--text-tertiary); }
     .pomo-bar-count { font-size: 10px; color: var(--text-secondary); min-height: 14px; }
 
-    /* TOUCH DEVICES — show action buttons without hover */
+    /* TOUCH DEVICES — nothing reveals on hover, so the row carries one control
+       and the menu carries the rest. That is where they live on desktop too;
+       four buttons simply do not fit beside the text at phone width. */
     @media (hover: none) {
         .task-actions  { opacity: 1; }
         .list-actions  { opacity: 1; }
+        .task-actions .date-btn,
+        .task-actions .priority-btn,
+        .task-actions .pomo-btn { display: none; }
+        .task-actions .menu-btn { width: 44px; height: 44px; }
+        .drag-handle { display: none; }
     }
 
     /* TAB COUNT BADGES */
@@ -1765,7 +1732,7 @@
         border: 1px solid var(--border-color); border-radius: 4px; padding: 1px 5px; background: none; }
 
     @media (max-width: 1100px) {
-        .detail-panel { width: 100%; max-width: 380px; }
+        .detail-panel { width: min(380px, 100%); }
         body.detail-open .container { padding-right: 0; }
     }
 
@@ -1784,6 +1751,27 @@
     .task.trashed { opacity: 0.75; }
     .task.trashed .task-text { text-decoration: none; color: var(--text-secondary); }
     .trash-age { font-size: 11px; color: var(--text-tertiary); display: inline-flex; align-items: center; gap: 4px; }
+    /* PHONE OVERRIDES — last in the sheet on purpose.
+       The media query further up sits in the middle of the file, so anything
+       declared after it silently wins at equal specificity. Rules for
+       components defined below that point belong here instead. */
+    @media (max-width: 768px) {
+        .quick-add-hint { display: none; }
+        .template-picker-btn { padding: 0 12px; }
+
+        .detail-panel { width: 100%; max-width: 100%; padding: 16px 16px 40px 16px; }
+        .detail-icon-btn { width: 40px; height: 40px; }
+        .detail-prop { min-height: 44px; }
+
+        .palette-overlay { padding-top: 6vh; }
+        .palette { width: 94vw; max-height: 76vh; }
+        .palette-item { height: 44px; }
+
+        .task-menu { min-width: 236px; }
+        .task-menu-item { height: 42px; font-size: 13.5px; }
+        .task-menu-sep { margin: 4px 9px; }
+    }
+
 </style>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1DB954">
