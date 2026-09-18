@@ -12,6 +12,9 @@ A modern, sleek task management application with dark/light mode, inspired by Sp
 - ⚡ Quick-add syntax — `#tag`, `!tomorrow`, `*`, `^` straight from the input
 - ⭐ Mark tasks as priority
 - 🍅 Pomodoro timer you can point at a single task
+- 🔁 Recurring tasks — daily, weekly, monthly or yearly
+- ⏰ Reminders at a set time, while the app is open
+- 🖨️ Print a clean copy of any list
 - 🗑️ Trash — deleted tasks recoverable for 30 days
 - ⚡ My Day — a daily list that clears itself each morning, with suggestions
 - 🌓 Dark Mode / Light Mode toggle
@@ -90,6 +93,8 @@ Call the bank #work #urgent !tomorrow *
 - **Priority**: Click the ⭐ button
 - **My Day**: Click the ⚡ button to commit to it today
 - **Pomodoro**: Click the 🍅 button to run the timer on that task
+- **Due date & reminder**: Click the 📅 button, or click an existing date
+- **Repeat**: Click 🔁 to cycle daily → weekly → monthly → yearly → off
 - **Edit**: Click the ✏️ button
 - **Delete**: Click the 🗑️ button — recoverable from Trash for 30 days
 
@@ -102,6 +107,31 @@ again instead of inheriting a stale list.
 Under the list, **Suggestions** offers up to five tasks worth pulling in —
 overdue first, then the nearest deadlines, then anything starred. Tasks already
 due today are left out because they show up on their own.
+
+### Reminders
+
+Set a due date, then a time in the same popover. The reminder fires as a
+browser notification, and clicking it jumps to the task.
+
+**It only fires while TaskFlow is open in a tab.** A closed page cannot wake
+itself up, so this is not a substitute for a phone alarm. A reminder whose time
+passed while the app was closed fires once, shortly after you reopen it. The
+popover says as much rather than letting you find out the hard way.
+
+Reminders can be snoozed for an hour from the toast that appears when they fire.
+
+### Recurring tasks
+
+Click 🔁 to cycle through daily, weekly, monthly and yearly. Completing a
+recurring task with a due date creates the next one automatically.
+
+Month and year steps clamp to the end of the month, so a task due on the 31st
+recurs on the 28th, 29th or 30th rather than skipping a month.
+
+### Printing
+
+🖨️ Print prints whatever list or view is on screen — no sidebar, buttons,
+timer or charts, just the tasks with their dates and tags in black on white.
 
 ### Organizing
 - Use the sidebar to switch between lists

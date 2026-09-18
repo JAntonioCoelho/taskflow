@@ -15,8 +15,13 @@ const {
     pickMyDaySuggestions,
     addDays,
     backupStatus,
+    fmtDate,
+    nextRecurrence,
+    streakContinues,
+    RECURRENCES,
     renderMarkdown,
 } = require('../lib.js');
+
 
 
 
@@ -273,5 +278,85 @@ describe('backupStatus', () => {
             state: 'ok',
             days: 0,
         });
+    });
+});
+
+describe('fmtDate', () => {
+    test('formats the local calendar day, not the UTC one', () => {
+        // Half past midnight local. toISOString() would report the previous day
+        // anywhere east of Greenwich; fmtDate must not.
+        const justAfterMidnight = new Date(2026, 8, 18, 0, 30);
+        expect(fmtDate(justAfterMidnight)).toBe('2026-09-18');
+    });
+
+    test('pads single-digit months and days', () => {
+        expect(fmtDate(new Date(2026, 0, 5))).toBe('2026-01-05');
+    });
+});
+
+describe('nextRecurrence', () => {
+    test('daily moves to the following day', () => {
+        expect(nextRecurrence('2026-09-18', 'daily')).toBe('2026-09-19');
+    });
+
+    test('daily crosses a month boundary', () => {
+        expect(nextRecurrence('2026-09-30', 'daily')).toBe('2026-10-01');
+    });
+
+    test('weekly moves seven days', () => {
+        expect(nextRecurrence('2026-09-18', 'weekly')).toBe('2026-09-25');
+    });
+
+    test('monthly keeps the day of the month', () => {
+        expect(nextRecurrence('2026-09-15', 'monthly')).toBe('2026-10-15');
+    });
+
+    test('monthly clamps instead of skipping a month', () => {
+        expect(nextRecurrence('2026-01-31', 'monthly')).toBe('2026-02-28');
+        expect(nextRecurrence('2026-03-31', 'monthly')).toBe('2026-04-30');
+        expect(nextRecurrence('2028-01-31', 'monthly')).toBe('2028-02-29');
+    });
+
+    test('monthly crosses the year boundary', () => {
+        expect(nextRecurrence('2026-12-10', 'monthly')).toBe('2027-01-10');
+    });
+
+    test('yearly moves a year, clamping a leap day', () => {
+        expect(nextRecurrence('2026-09-18', 'yearly')).toBe('2027-09-18');
+        expect(nextRecurrence('2028-02-29', 'yearly')).toBe('2029-02-28');
+    });
+
+    test('rejects an unknown cadence or a missing date', () => {
+        expect(nextRecurrence('2026-09-18', 'hourly')).toBeNull();
+        expect(nextRecurrence('2026-09-18', null)).toBeNull();
+        expect(nextRecurrence(null, 'daily')).toBeNull();
+        expect(nextRecurrence('not a date', 'daily')).toBeNull();
+    });
+
+    test('every advertised cadence produces a later date', () => {
+        RECURRENCES.forEach((r) => {
+            expect(nextRecurrence('2026-09-18', r) > '2026-09-18').toBe(true);
+        });
+    });
+});
+
+describe('streakContinues', () => {
+    test('allows a day of slack on a daily habit', () => {
+        expect(streakContinues('daily', 1)).toBe(true);
+        expect(streakContinues('daily', 2)).toBe(true);
+        expect(streakContinues('daily', 3)).toBe(false);
+    });
+
+    test('scales the window to the cadence', () => {
+        expect(streakContinues('weekly', 9)).toBe(true);
+        expect(streakContinues('weekly', 10)).toBe(false);
+        expect(streakContinues('monthly', 31)).toBe(true);
+        expect(streakContinues('monthly', 39)).toBe(false);
+        expect(streakContinues('yearly', 366)).toBe(true);
+    });
+
+    test('an unknown cadence never continues a streak', () => {
+        expect(streakContinues('hourly', 1)).toBe(false);
+        expect(streakContinues(null, 1)).toBe(false);
     });
 });

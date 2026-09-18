@@ -1620,6 +1620,54 @@
     .pomo-count-badge { font-size: 11px; font-weight: 700; color: var(--accent-red); background: rgba(226,33,52,0.12); border-radius: 6px; padding: 1px 5px; }
     .pomo-bar.done { background: var(--accent-orange); }
 
+    /* DATE POPOVER — REMINDER TIME */
+    .date-popover-time-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; margin-bottom: 4px; }
+    .date-popover-time { flex: 1; width: auto; padding: 4px 6px; }
+    .date-popover-note { font-size: 9px; opacity: 0.7; margin-bottom: 0; }
+
+    /* PRINT — one clean list, none of the chrome */
+    @media print {
+        .sidebar, .sidebar-pomodoro, .header-search, .search-all-btn, .compact-btn,
+        .focus-mode-btn, .print-btn, .radio-widget, .hamburger-btn, .tabs,
+        .add-task, .quick-add-hint, .sort-bar, .task-actions, .drag-handle,
+        .select-mode-btn, .bulk-toolbar, .tag-filter-bar, .clear-completed-btn,
+        .toast, .myday-sugg-add, .data-section, .pomo-chart, .subtask-add-row,
+        .notes-edit-hint, .pinned-divider, .modal-overlay, .templates-overlay,
+        .date-popover, .focus-exit-pill, .sidebar-overlay { display: none !important; }
+
+        /* Repoint the palette instead of chasing every element that uses it */
+        :root, body {
+            --bg-primary: #ffffff;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #ffffff;
+            --bg-hover: #ffffff;
+            --border-color: #bbbbbb;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-tertiary: #666666;
+        }
+        body { background: #ffffff !important; }
+
+        .container { display: block !important; height: auto !important; }
+        .main-content { overflow: visible !important; }
+        .content-area { overflow: visible !important; padding: 0 !important; }
+        .header { padding: 0 0 12px 0 !important; border-bottom: 1px solid #000 !important; }
+        .task {
+            border: none !important;
+            border-bottom: 1px solid #bbb !important;
+            border-radius: 0 !important;
+            page-break-inside: avoid;
+        }
+        .task-wrapper { page-break-inside: avoid; margin-bottom: 0 !important; }
+        .tag-pill, .task-badge, .streak-badge, .pomo-count-badge {
+            color: #000 !important;
+            background: none !important;
+            border: 1px solid #999 !important;
+        }
+        a { color: #000 !important; text-decoration: underline; }
+        @page { margin: 1.5cm; }
+    }
+
     /* MY DAY SUGGESTIONS */
     .myday-suggestions { margin-top: 18px; padding: 14px 16px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 12px; }
     .myday-sugg-title { font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
@@ -1769,6 +1817,8 @@
             <button class="compact-btn" id="compact-btn" onclick="toggleCompactMode()" title="Toggle compact view" aria-label="Toggle compact view">⊟ Compact</button>
             <!-- FOCUS MODE TOGGLE -->
             <button class="focus-mode-btn" id="focus-mode-btn" onclick="toggleFocusMode()" title="Focus mode (F)" aria-label="Toggle focus mode">⊙ Focus</button>
+            <!-- PRINT -->
+            <button class="focus-mode-btn print-btn" id="print-btn" onclick="window.print()" title="Print this list" aria-label="Print this list">🖨️ Print</button>
             <!-- RADIO WIDGET -->
             <div class="radio-widget" id="radio-widget">
                 <div class="radio-bars" id="radio-bars">
@@ -2019,6 +2069,12 @@
     <div class="date-popover-hint">today · tmr · +3d · +1w · YYYY-MM-DD</div>
     <input type="text" class="date-popover-input" id="date-popover-input" placeholder="Enter date…"
         onkeydown="if(event.key==='Enter'){event.preventDefault();saveDatePopover();}else if(event.key==='Escape'){event.stopPropagation();closeDatePopover();}">
+    <label class="date-popover-hint date-popover-time-row" for="date-popover-time">
+        ⏰ Remind at
+        <input type="time" class="date-popover-input date-popover-time" id="date-popover-time"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();saveDatePopover();}else if(event.key==='Escape'){event.stopPropagation();closeDatePopover();}">
+    </label>
+    <div class="date-popover-hint date-popover-note">Only fires while TaskFlow is open.</div>
     <div class="date-popover-actions">
         <button class="date-popover-btn date-popover-save" onclick="saveDatePopover()">Set</button>
         <button class="date-popover-btn date-popover-clear" onclick="clearDatePopover()">Clear</button>
@@ -2050,6 +2106,7 @@
             if (t.lastStreakDate === undefined) t.lastStreakDate = null;
             if (t.completedAt === undefined) t.completedAt = null;
             if (t.pomodoros === undefined) t.pomodoros = 0;
+            if (t.remindTime === undefined) t.remindTime = null;
         });
     });
     let currentListId = (function() {
@@ -2135,6 +2192,8 @@
         updateAllStats();
         setupNavigation();
         checkDueReminders();
+        checkTimedReminders();
+        setInterval(checkTimedReminders, 60 * 1000);
         setInterval(function() {
             if (resetMyDayIfNewDay()) { renderAllViews(); updateAllStats(); }
             checkDueReminders();
@@ -2621,6 +2680,7 @@
             lastStreakDate: null,
             pomodoros: 0,
             completedAt: null,
+            remindTime: null,
             createdAt: new Date().toISOString()
         };
         list.tasks.push(newTask);
@@ -2780,6 +2840,7 @@
             const checkboxLabel = task.completed ? 'Mark as incomplete' : 'Mark as complete';
             const dueDateHtml = task.dueDate ? `<span class="task-due-date ${isDueOverdue(task) ? 'overdue' : isDueToday(task) ? 'due-today' : ''}" onclick="event.stopPropagation();openDatePopover(${task.id},this)" title="Click to change date">📅 ${formatDueDate(task.dueDate)}</span>` : '';
             const recurrenceHtml = task.recurrence ? `<span class="task-due-date">🔁 ${task.recurrence}</span>` : '';
+            const remindHtml = task.remindTime ? `<span class="task-due-date" onclick="event.stopPropagation();openDatePopover(${task.id},this)" title="Reminder — fires only while TaskFlow is open">⏰ ${task.remindTime}</span>` : '';
             const streakHtml = (task.recurrence && task.streak > 1) ? `<span class="streak-badge ${task.streak >= 7 ? 'hot' : ''}">🔥 ${task.streak}</span>` : '';
             const pomoHtml = task.pomodoros ? `<span class="pomo-count-badge" title="${task.pomodoros} pomodoro${task.pomodoros !== 1 ? 's' : ''} spent">🍅 ${task.pomodoros}</span>` : '';
             const subtaskCount = (task.subtasks || []).length;
@@ -2791,8 +2852,8 @@
                 return `<span class="tag-pill" style="background:${color}">${escapeHtml(tagName)}</span>`;
             }).join('');
             const listBadgeHtml = isAllListsMode && task._listName ? `<span class="task-list-badge">${escapeHtml(task._listIcon || '')} ${escapeHtml(task._listName)}</span>` : '';
-            const metaRow = (listBadgeHtml || dueDateHtml || recurrenceHtml || streakHtml || pomoHtml || subtaskHtml || tagPillsHtml) ?
-                `<div class="task-meta">${listBadgeHtml}${dueDateHtml}${recurrenceHtml}${streakHtml}${pomoHtml}${subtaskHtml}${tagPillsHtml ? `<span class="task-tags">${tagPillsHtml}</span>` : ''}</div>` : '';
+            const metaRow = (listBadgeHtml || dueDateHtml || remindHtml || recurrenceHtml || streakHtml || pomoHtml || subtaskHtml || tagPillsHtml) ?
+                `<div class="task-meta">${listBadgeHtml}${dueDateHtml}${remindHtml}${recurrenceHtml}${streakHtml}${pomoHtml}${subtaskHtml}${tagPillsHtml ? `<span class="task-tags">${tagPillsHtml}</span>` : ''}</div>` : '';
 
             const dragAttrs = isDraggable ? `draggable="true" ondragstart="dragStart(event,${task.id})" ondragover="dragOver(event,${task.id})" ondrop="dragDrop(event,${task.id})" ondragend="dragEnd(event)" ondragleave="dragLeave(event)"` : '';
             const dragHandle = isDraggable ? `<span class="drag-handle" aria-hidden="true">⠿</span>` : '';
@@ -3119,8 +3180,7 @@
             const prevDate = task.lastStreakDate;
             if (prevDate && prevDate !== todayStr) {
                 const diffDays = Math.round((new Date(todayStr) - new Date(prevDate)) / 86400000);
-                const withinWindow = task.recurrence === 'daily' ? diffDays <= 2 : diffDays <= 9;
-                task.streak = withinWindow ? (task.streak || 0) + 1 : 1;
+                task.streak = streakContinues(task.recurrence, diffDays) ? (task.streak || 0) + 1 : 1;
             } else if (!prevDate) {
                 task.streak = 1;
             }
@@ -3128,20 +3188,21 @@
         }
         // Auto-create next recurring instance when completing a recurring task with a due date
         if (task.completed && task.recurrence && task.dueDate) {
-            const next = new Date(task.dueDate + 'T00:00:00');
-            next.setDate(next.getDate() + (task.recurrence === 'daily' ? 1 : 7));
-            const newTask = Object.assign({}, task, {
-                id: generateTaskId(),
-                completed: false,
-                completedAt: null,
-                pomodoros: 0,
-                createdAt: new Date().toISOString(),
-                dueDate: next.toISOString().split('T')[0],
-                subtasks: [],
-                notesOpen: false,
-                subtasksOpen: false
-            });
-            list.tasks.push(newTask);
+            const nextDue = nextRecurrence(task.dueDate, task.recurrence);
+            if (nextDue) {
+                const newTask = Object.assign({}, task, {
+                    id: generateTaskId(),
+                    completed: false,
+                    completedAt: null,
+                    pomodoros: 0,
+                    createdAt: new Date().toISOString(),
+                    dueDate: nextDue,
+                    subtasks: [],
+                    notesOpen: false,
+                    subtasksOpen: false
+                });
+                list.tasks.push(newTask);
+            }
         }
         saveLists();
         renderAllViews();
@@ -3858,7 +3919,7 @@
         if (!list) return;
         const task = list.tasks.find(t => t.id === taskId);
         if (!task) return;
-        const cycle = [null, 'daily', 'weekly'];
+        const cycle = [null].concat(RECURRENCES);
         const idx = cycle.indexOf(task.recurrence);
         task.recurrence = cycle[(idx + 1) % cycle.length];
         saveLists();
@@ -3898,6 +3959,36 @@
             showToast(due.length + ' task' + (due.length !== 1 ? 's' : '') + ' due', '😴 Snooze 1h',
                 function() { snoozeReminders(60); }, 10000);
         }
+    }
+
+    // Timed reminders fire only while the app is open — a closed page cannot wake
+    // itself, and the popover says so rather than promising what it cannot do.
+    // A reminder missed while closed still fires on the next tick after reopening.
+    function checkTimedReminders() {
+        if (!('Notification' in window) || Notification.permission !== 'granted') return;
+        if (Date.now() < reminderSnoozeUntil) return;
+        const todayStr = getTodayStr();
+        const now = new Date();
+        const nowHM = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+        const key = 'timedNotified_' + todayStr;
+        const fired = new Set(JSON.parse(localStorage.getItem(key) || '[]'));
+        let changed = false;
+        lists.forEach(function(l) {
+            l.tasks.forEach(function(t) {
+                if (t.completed || !t.remindTime || t.dueDate !== todayStr) return;
+                if (t.remindTime > nowHM || fired.has(String(t.id))) return;
+                const n = new Notification('⏰ ' + t.text, { body: 'Due today at ' + t.remindTime });
+                n.onclick = function() {
+                    window.focus();
+                    selectList(l.id);
+                    switchView('all');
+                    n.close();
+                };
+                fired.add(String(t.id));
+                changed = true;
+            });
+        });
+        if (changed) localStorage.setItem(key, JSON.stringify([...fired]));
     }
 
     function snoozeReminders(mins) {
@@ -4009,6 +4100,8 @@
         const popover = document.getElementById('date-popover');
         const input = document.getElementById('date-popover-input');
         input.value = (task && task.dueDate) ? task.dueDate : '';
+        const timeInput = document.getElementById('date-popover-time');
+        if (timeInput) timeInput.value = (task && task.remindTime) ? task.remindTime : '';
         const rect = el.getBoundingClientRect();
         const top = rect.bottom + 6;
         const left = Math.min(rect.left, window.innerWidth - 220);
@@ -4028,10 +4121,19 @@
 
     function saveDatePopover() {
         const val = document.getElementById('date-popover-input').value.trim();
+        const timeEl = document.getElementById('date-popover-time');
+        const time = timeEl ? timeEl.value : '';
         if (_datePopoverTaskId !== null) {
             const list = findListForTask(_datePopoverTaskId);
             const task = list ? list.tasks.find(t => t.id === _datePopoverTaskId) : null;
-            if (task) { task.dueDate = val ? parseNaturalDate(val) : null; saveLists(); renderAllViews(); updateAllStats(); }
+            if (task) {
+                task.dueDate = val ? parseNaturalDate(val) : null;
+                // A time with no day has nothing to fire on
+                task.remindTime = (time && task.dueDate) ? time : null;
+                saveLists();
+                renderAllViews();
+                updateAllStats();
+            }
         }
         closeDatePopover();
     }
@@ -4040,7 +4142,7 @@
         if (_datePopoverTaskId !== null) {
             const list = findListForTask(_datePopoverTaskId);
             const task = list ? list.tasks.find(t => t.id === _datePopoverTaskId) : null;
-            if (task) { task.dueDate = null; saveLists(); renderAllViews(); updateAllStats(); }
+            if (task) { task.dueDate = null; task.remindTime = null; saveLists(); renderAllViews(); updateAllStats(); }
         }
         closeDatePopover();
     }
@@ -4163,6 +4265,7 @@
             lastStreakDate: null,
             pomodoros: 0,
             completedAt: null,
+            remindTime: null,
             createdAt: new Date().toISOString()
         };
         list.tasks.push(newTask);

@@ -20,8 +20,16 @@ function escapeHtml(text) {
 }
 
 // DUE DATE HELPERS
+// Always format the LOCAL calendar day. toISOString() shifts to UTC, which east
+// of Greenwich reports yesterday just after midnight and made daily recurrence
+// land on the day it started from.
+function fmtDate(d) {
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 function getTodayStr() {
-    return new Date().toISOString().split('T')[0];
+    return fmtDate(new Date());
 }
 
 function isDueOverdue(task) {
@@ -49,22 +57,20 @@ function formatDueDate(dueDate) {
 function parseNaturalDate(value) {
     const v = String(value).trim().toLowerCase();
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    const pad = n => String(n).padStart(2, '0');
-    const fmt = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
-    if (v === 'today' || v === 'td') return fmt(today);
-    if (v === 'tomorrow' || v === 'tmr' || v === 'tom') { const d = new Date(today); d.setDate(d.getDate() + 1); return fmt(d); }
+    if (v === 'today' || v === 'td') return fmtDate(today);
+    if (v === 'tomorrow' || v === 'tmr' || v === 'tom') { const d = new Date(today); d.setDate(d.getDate() + 1); return fmtDate(d); }
     const relMatch = v.match(/^\+?(\d+)\s*([dw])$/);
     if (relMatch) {
         const n = parseInt(relMatch[1], 10);
         const d = new Date(today);
         d.setDate(d.getDate() + (relMatch[2] === 'w' ? n * 7 : n));
-        return fmt(d);
+        return fmtDate(d);
     }
     // Pass through YYYY-MM-DD or any parseable date
     if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
     const parsed = new Date(value);
-    if (!isNaN(parsed.getTime())) return fmt(parsed);
+    if (!isNaN(parsed.getTime())) return fmtDate(parsed);
     return value;
 }
 
@@ -102,8 +108,37 @@ function parseQuickAdd(raw) {
 function addDays(isoDate, days) {
     const d = new Date(isoDate + 'T00:00:00');
     d.setDate(d.getDate() + days);
-    const pad = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    return fmtDate(d);
+}
+
+const RECURRENCES = ['daily', 'weekly', 'monthly', 'yearly'];
+
+/**
+ * The occurrence after isoDate. Month and year steps clamp to the end of the
+ * target month, so the 31st recurs as the 28th/30th instead of skipping a month
+ * the way plain setMonth() does.
+ */
+function nextRecurrence(isoDate, recurrence) {
+    if (!isoDate || RECURRENCES.indexOf(recurrence) === -1) return null;
+    const d = new Date(isoDate + 'T00:00:00');
+    if (isNaN(d.getTime())) return null;
+    if (recurrence === 'daily') return addDays(isoDate, 1);
+    if (recurrence === 'weekly') return addDays(isoDate, 7);
+    const day = d.getDate();
+    const target = new Date(d.getFullYear(), d.getMonth(), 1);
+    if (recurrence === 'monthly') target.setMonth(target.getMonth() + 1);
+    else target.setFullYear(target.getFullYear() + 1);
+    const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+    target.setDate(Math.min(day, lastDay));
+    return fmtDate(target);
+}
+
+// How long a habit streak survives between completions, per cadence.
+const STREAK_WINDOW_DAYS = { daily: 2, weekly: 9, monthly: 38, yearly: 380 };
+
+function streakContinues(recurrence, diffDays) {
+    const limit = STREAK_WINDOW_DAYS[recurrence];
+    return limit !== undefined && diffDays <= limit;
 }
 
 /**
@@ -180,6 +215,7 @@ function renderMarkdown(text) {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         escapeHtml, getTodayStr, isDueOverdue, isDueToday, addDays, backupStatus,
+        fmtDate, nextRecurrence, streakContinues, RECURRENCES,
         formatDueDate, parseNaturalDate, parseQuickAdd, pickMyDaySuggestions, renderMarkdown
     };
 }
