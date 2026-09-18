@@ -205,22 +205,53 @@ Run `npm run test:visual:update` and commit the new PNGs whenever a change to
 the design is intended; review the diff images in `playwright-report/` when it
 was not.
 
-**Baselines are per platform.** Playwright names them `…-win32.png`, so a run
-on Linux or macOS will report them missing rather than compare. That is why
-this suite is not part of the GitHub Actions workflow, which runs on Ubuntu —
-wiring it up means generating a Linux set first.
+**Baselines are per platform.** Playwright names them `…-win32.png` locally
+and `…-linux.png` in CI, and compares only against its own set. CI renders
+inside `mcr.microsoft.com/playwright`, pinned to the same version as the
+package, so its screenshots are reproducible.
+
+To create or refresh the Linux set, run the **Update Visual Baselines**
+workflow from the Actions tab. It regenerates them in that container and
+opens a pull request, because a new baseline redefines what "correct" looks
+like and the images deserve a look.
 
 Tests run automatically on every push via GitHub Actions.
 
+## 🚦 Release pipeline
+
+One gated pipeline, `.github/workflows/release.yml`. Each stage has to pass
+before the next one starts, and nothing reaches GitHub Pages until all three
+checks are green:
+
+| Stage | What it does | Blocks the release on |
+|-------|--------------|-----------------------|
+| **1 · Unit** | ESLint, then Jest — helpers and the app driven in jsdom | any failing test |
+| **2 · E2E** | Playwright in a pinned container, desktop and phone | a behaviour or layout regression |
+| **3 · Security** | see below | a finding in shipped code |
+| **4 · Deploy** | GitHub Pages | — runs only on a push to `main` |
+
+Pull requests run stages 1–3 and stop. A weekly schedule runs them too, so a
+newly disclosed advisory surfaces without waiting for a commit.
+
 ## 🔒 Security
 
-Automatic security scanning includes:
-- npm audit for dependency vulnerabilities
-- CodeQL static analysis
-- XSS vulnerability checks
-- SQL injection pattern detection
-- Secret scanning
-- Weekly automated security scans
+The security stage fails the build on:
+
+- **Dependency audit of shipped code.** The site bundles no npm packages —
+  `package.json` has no `dependencies`, only `devDependencies` — so this is
+  what actually reaches a user. Advisories in the tooling are reported but do
+  not block: Jest and Playwright never leave the build machine.
+- **Hardcoded credentials** in `index.html`, `lib.js` or `sw.js`.
+- **`JSON.stringify` inside an inline event handler.** A quote in the value
+  closes the attribute and opens a new one; this shipped once. `attrJson()`
+  entity-encodes instead.
+- **User-supplied values interpolated into markup without `escapeHtml()`.**
+- **Third-party requests.** A stylesheet, font or script fetched from another
+  origin would break the privacy claim below. The webfont is self-hosted for
+  exactly this reason.
+- **Leftover patch markers**, which once made the CSS parser silently drop
+  four rules.
+- **CodeQL** static analysis.
 
 ## 📊 Statistics
 

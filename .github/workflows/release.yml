@@ -1,0 +1,217 @@
+name: Release Pipeline
+
+# One gated pipeline in place of three workflows that ran independently.
+# Deploy used to fire on any push to main whether or not the tests passed;
+# now every stage has to go green first.
+#
+#   unit  →  e2e  →  security  →  deploy
+#
+# The weekly schedule runs the first three and skips deploy.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 9 * * 1' # Mondays, 09:00 UTC
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    name: 1 · Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Formatting
+        run: npx prettier --check lib.js tests/ tests-visual/ playwright.config.js
+        continue-on-error: true
+
+      - name: Jest
+        run: npm test
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+
+  e2e:
+    name: 2 · End-to-end
+    needs: unit
+    runs-on: ubuntu-latest
+    # Rendering has to match the committed baselines, so the browser, its
+    # fonts and its freetype build all come from the pinned image. Keep the
+    # tag in step with the @playwright/test version in package.json.
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Playwright
+        run: npx playwright test
+        env:
+          CI: true
+
+      - name: Upload report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+
+  security:
+    name: 3 · Security
+    needs: e2e
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Dependency audit (shipped code)
+        # The site bundles no npm packages — package.json has no dependencies,
+        # only devDependencies — so this is what actually reaches a user.
+        run: npm audit --omit=dev --audit-level=low
+
+      - name: Dependency advisories (tooling)
+        # Jest, Playwright and friends never leave the build machine, so their
+        # advisories are worth seeing but not worth blocking a release on.
+        run: npm audit --audit-level=high || true
+
+      - name: Hardcoded secrets
+        run: |
+          if grep -rniE "(password|passwd|secret|api[_-]?key|access[_-]?token|auth[_-]?token|bearer)[\"']?\s*[:=]\s*[\"'][^\"']{8,}[\"']" \
+               index.html lib.js sw.js; then
+            echo "::error::Possible hardcoded credential — review the match above"
+            exit 1
+          fi
+          echo "No hardcoded credentials found"
+
+      - name: Attribute injection in inline handlers
+        # A bare JSON.stringify inside a double-quoted attribute lets a quote
+        # in the value close the attribute and open a new one. attrJson()
+        # entity-encodes instead. This shipped once; it does not ship again.
+        run: |
+          if grep -nE '<[^>]*on[a-z]+="[^"]*\$\{JSON\.stringify' index.html; then
+            echo "::error::JSON.stringify inside an inline handler — use attrJson()"
+            exit 1
+          fi
+          echo "No raw JSON.stringify in inline handlers"
+
+      - name: Unescaped interpolation into markup
+        run: |
+          MATCHES=$(grep -nE '\$\{(task\.text|list\.name|s\.text|entry\.task\.text|tagName|def\.name)\}' index.html || true)
+          if [ -n "$MATCHES" ]; then
+            echo "$MATCHES"
+            echo "::error::User-supplied value interpolated without escapeHtml()"
+            exit 1
+          fi
+          echo "User-supplied values are escaped"
+
+      - name: Third-party requests
+        # The README promises nothing leaves the device. A stylesheet, font or
+        # script pulled from another origin at runtime would break that.
+        run: |
+          EXTERNAL=$(grep -oE '(src|href)="https?://[^"]+"' index.html \
+                     | grep -vE 'localhost|127\.0\.0\.1' || true)
+          if [ -n "$EXTERNAL" ]; then
+            echo "$EXTERNAL"
+            echo "::error::External resource loaded at runtime — see the privacy claim in README"
+            exit 1
+          fi
+          echo "No third-party requests"
+
+      - name: Leftover patch markers
+        # Stray @@@END@@@ lines once made the CSS parser drop four rules.
+        run: |
+          if grep -rn '@@@\(OLD\|NEW\|END\)@@@' index.html lib.js sw.js; then
+            echo "::error::Patch marker left in a shipped file"
+            exit 1
+          fi
+          echo "No patch markers"
+
+      - name: CodeQL init
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+
+      - name: CodeQL analyse
+        uses: github/codeql-action/analyze@v3
+
+  deploy:
+    name: 4 · Deploy
+    needs: security
+    # Only a real push to main ships. Pull requests and the weekly run stop
+    # after the checks.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify the app is there
+        run: |
+          for f in index.html lib.js sw.js manifest.json; do
+            [ -f "$f" ] || { echo "::error::$f is missing"; exit 1; }
+          done
+          echo "All required files present"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

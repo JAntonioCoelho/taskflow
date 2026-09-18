@@ -1,5 +1,6 @@
-const CACHE = 'taskflow-v3';
-const ASSETS = ['./', './lib.js', './manifest.json', './icon.svg'];
+const CACHE = 'taskflow-v4';
+const ASSETS = ['./', './lib.js', './manifest.json', './icon.svg',
+    './fonts/schibsted-grotesk-latin.woff2', './fonts/schibsted-grotesk-latin-ext.woff2'];
 
 self.addEventListener('install', function(e) {
     e.waitUntil(caches.open(CACHE).then(function(c) { return c.addAll(ASSETS); }));
