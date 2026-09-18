@@ -9,7 +9,10 @@ A modern, sleek task management application with dark/light mode, inspired by Sp
 ## ✨ Features
 
 - ✅ Create, edit, and delete tasks
+- ⚡ Quick-add syntax — `#tag`, `!tomorrow`, `*`, `^` straight from the input
 - ⭐ Mark tasks as priority
+- 🍅 Pomodoro timer you can point at a single task
+- 🗑️ Trash — deleted tasks recoverable for 30 days
 - ⚡ Set tasks for today
 - 🌓 Dark Mode / Light Mode toggle
 - 📊 Detailed statistics dashboard
@@ -67,12 +70,28 @@ npx serve
 2. Press Enter or click "Add"
 3. Task appears in your list
 
+#### Quick-add Syntax
+
+Everything can go in one line — anything that does not parse stays in the task text:
+
+| Token | Effect | Example |
+|-------|--------|---------|
+| `#name` | Adds a tag (up to 5) | `Call bank #work` |
+| `!date` | Sets a due date | `!today`, `!tomorrow`, `!+3d`, `!2w`, `!2026-01-31` |
+| `*` | Marks as priority | `Pay rent *` |
+| `^` | Pins to the top | `Standup notes ^` |
+
+```
+Call the bank #work #urgent !tomorrow *
+```
+
 ### Managing Tasks
 - **Complete**: Click the circle checkbox
 - **Priority**: Click the ⭐ button
 - **Today**: Click the ⚡ button
+- **Pomodoro**: Click the 🍅 button to run the timer on that task
 - **Edit**: Click the ✏️ button
-- **Delete**: Click the 🗑️ button
+- **Delete**: Click the 🗑️ button — recoverable from Trash for 30 days
 
 ### Organizing
 - Use the sidebar to switch between lists
@@ -90,6 +109,10 @@ Run tests locally:
 npm install
 npm test
 ```
+
+Pure helpers (date parsing, quick-add syntax, markdown, HTML escaping) live in
+`lib.js` so they can be tested directly; `tests/lib.test.js` covers them.
+The UI itself stays in `index.html`.
 
 Tests run automatically on every push via GitHub Actions.
 
@@ -111,7 +134,9 @@ The app tracks:
 - Priority tasks (active)
 - Today's tasks (active)
 - Completion rate percentage
-- Pending tasks
+- Pending tasks (with overdue count)
+- Pomodoros per day, last 7 days
+- Tasks completed per day, last 7 days
 
 ## 🔐 Privacy
 

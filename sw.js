@@ -1,5 +1,5 @@
-const CACHE = 'taskflow-v1';
-const ASSETS = ['./', './manifest.json', './icon.svg'];
+const CACHE = 'taskflow-v2';
+const ASSETS = ['./', './lib.js', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', function(e) {
     e.waitUntil(caches.open(CACHE).then(function(c) { return c.addAll(ASSETS); }));

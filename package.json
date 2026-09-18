@@ -6,8 +6,8 @@
   "scripts": {
     "test": "jest --coverage",
     "test:watch": "jest --watch",
-    "lint": "eslint tests/",
-    "lint:fix": "eslint tests/ --fix",
+    "lint": "eslint lib.js tests/",
+    "lint:fix": "eslint lib.js tests/ --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "serve": "python -m http.server 8000"
@@ -38,7 +38,7 @@
     "testEnvironment": "jsdom",
     "coverageDirectory": "coverage",
     "collectCoverageFrom": [
-      "tests/**/*.js"
+      "lib.js"
     ],
     "testMatch": [
       "<rootDir>/tests/**/*.test.js"
