@@ -19,6 +19,22 @@ function escapeHtml(text) {
         .replace(/"/g, '&quot;');
 }
 
+/**
+ * A JS literal safe to embed inside a double-quoted HTML attribute.
+ * JSON.stringify alone is not enough: it escapes a quote as \" for JavaScript,
+ * but HTML ends the attribute at that quote regardless, letting a crafted value
+ * open a new attribute. Entity-encoding after stringify closes that, because the
+ * parser decodes entities before the handler is compiled.
+ */
+function attrJson(value) {
+    return JSON.stringify(value)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
 // DUE DATE HELPERS
 // Always format the LOCAL calendar day. toISOString() shifts to UTC, which east
 // of Greenwich reports yesterday just after midnight and made daily recurrence
@@ -276,7 +292,7 @@ function renderMarkdown(text) {
 
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
-        escapeHtml, getTodayStr, isDueOverdue, isDueToday, addDays, backupStatus,
+        escapeHtml, attrJson, getTodayStr, isDueOverdue, isDueToday, addDays, backupStatus,
         fmtDate, nextRecurrence, streakContinues, RECURRENCES, icon, ICON_PATHS,
         formatDueDate, parseNaturalDate, parseQuickAdd, pickMyDaySuggestions, renderMarkdown
     };

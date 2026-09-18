@@ -6,6 +6,7 @@
 
 const {
     escapeHtml,
+    attrJson,
     getTodayStr,
     isDueOverdue,
     isDueToday,
@@ -384,6 +385,47 @@ describe('icon', () => {
     test('every icon in the set has path data', () => {
         Object.keys(ICON_PATHS).forEach((name) => {
             expect(icon(name)).toContain('<svg');
+        });
+    });
+});
+
+describe('attrJson', () => {
+    test('quotes a plain string as an entity-encoded JS literal', () => {
+        expect(attrJson('work')).toBe('&quot;work&quot;');
+    });
+
+    test('a quote in the value cannot end the HTML attribute', () => {
+        // The payload that escaped the onclick attribute and ran as an
+        // injected onmouseover handler before this was fixed.
+        const out = attrJson('x" onmouseover=window.__XSS=1//');
+        expect(out).not.toMatch(/(^|[^&#a-z0-9])"/);
+        expect(out.includes('"')).toBe(false);
+    });
+
+    test('angle brackets cannot open a tag', () => {
+        const out = attrJson('</script><img src=x onerror=alert(1)>');
+        expect(out).not.toContain('<');
+        expect(out).not.toContain('>');
+    });
+
+    test('an apostrophe cannot end a single-quoted attribute', () => {
+        expect(attrJson("it's").includes("'")).toBe(false);
+    });
+
+    test('ampersands are encoded first, so entities cannot be forged', () => {
+        expect(attrJson('a&quot;b')).toBe('&quot;a&amp;quot;b&quot;');
+    });
+
+    test('decoding the entities yields the original JSON literal', () => {
+        const decode = (s) =>
+            s
+                .replace(/&quot;/g, '"')
+                .replace(/&#39;/g, "'")
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&amp;/g, '&');
+        ['work', 'x" onmouseover=1', "it's", '<b>', 'a&b'].forEach((raw) => {
+            expect(JSON.parse(decode(attrJson(raw)))).toBe(raw);
         });
     });
 });

@@ -101,6 +101,11 @@ Everything else lives in one of three places:
   keyboard shortcut for each one shown beside it.
 - **⌘K / Ctrl+K** for the command palette.
 
+With a task focused (click it, or navigate with `↑` `↓`), the shortcuts the
+menu prints work directly: `T` My Day, `P` priority, `⇧P` pin, `D` due date,
+`R` repeat, `#` tags, `N` notes, `S` subtasks, `⇧F` pomodoro, `M` move,
+`E` rename, `Del` delete.
+
 **Complete** stays where it always was: the circle on the left.
 
 ### The command palette

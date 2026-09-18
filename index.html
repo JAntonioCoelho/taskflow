@@ -3050,6 +3050,9 @@
         else if (currentView === 'done')     renderDoneView();
         else if (currentView === 'upcoming') renderUpcomingView();
         else if (currentView === 'trash')    renderTrashView();
+        // The panel shows the same task the list does; anything that changes a
+        // task from the menu or a shortcut has to refresh both or the panel lies.
+        if (detailTaskId !== null) renderDetail();
         updateDetailedStats();
         updateClearCompletedBtn();
     }
@@ -3288,7 +3291,7 @@
         { id: 'notes',    label: 'Notes',            icon: 'note',     keys: 'N',  run: openDetailNotes },
         { id: 'subtasks', label: 'Subtasks',         icon: 'subtasks', keys: 'S',  run: openDetailSubtasks },
         { sep: true },
-        { id: 'pomodoro', label: 'Start pomodoro',   icon: 'timer',    keys: 'F',  run: startPomodoroFor,
+        { id: 'pomodoro', label: 'Start pomodoro',   icon: 'timer',    keys: '⇧F', run: startPomodoroFor,
           labelFor: t => (pomodoroTaskId === t.id && pomodoroIsRunning) ? 'Pause pomodoro' : 'Start pomodoro' },
         { id: 'move',     label: 'Move to list…',    icon: 'move',     keys: 'M',  run: moveTask },
         { id: 'template', label: 'Save as template', icon: 'template',             run: saveAsTemplate },
@@ -3296,6 +3299,22 @@
         { sep: true },
         { id: 'delete',   label: 'Delete',           icon: 'trash',    keys: 'Del', run: deleteTask, danger: true }
     ];
+
+    // e.key is case-sensitive, so shift variants fall out for free: p pins
+    // priority, P pins to top, f is focus mode, F starts a pomodoro.
+    const TASK_KEYS = {
+        t: 'today', T: 'today',
+        p: 'priority', P: 'pin',
+        d: 'due', D: 'due',
+        r: 'repeat', R: 'repeat',
+        '#': 'tags',
+        n: 'notes', N: 'notes',
+        s: 'subtasks', S: 'subtasks',
+        F: 'pomodoro',
+        m: 'move', M: 'move',
+        e: 'edit', E: 'edit',
+        Delete: 'delete', Backspace: 'delete'
+    };
 
     let _menuTaskId = null;
     let detailTaskId = null;
@@ -4058,8 +4077,8 @@
                         const isActive = activeTags.includes(def.name);
                         return `<span style="display:inline-flex;align-items:center;gap:2px;">
                             <span class="tag-pill" style="color:${def.color};opacity:${isActive?1:0.45};cursor:pointer;border-width:${isActive?'2px':'1px'}"
-                                onclick="(function(){var t=JSON.parse(document.getElementById('prompt-input').value||'[]');var n=${JSON.stringify(def.name)};var i=t.indexOf(n);if(i>=0)t.splice(i,1);else if(t.length<5)t.push(n);document.getElementById('prompt-input').value=JSON.stringify(t);document.getElementById('tag-picker-div').innerHTML='';if(window._tagRefresh)window._tagRefresh();})()">${escapeHtml(def.name)}</span>
-                            <button type="button" title="Delete tag" onclick="deleteTagDef(${JSON.stringify(def.name)})" style="background:none;border:none;cursor:pointer;color:var(--text-tertiary);font-size:11px;padding:0 2px;line-height:1;" aria-label="Delete tag ${escapeHtml(def.name)}">${icon('close', 10)}</button>
+                                onclick="(function(){var t=JSON.parse(document.getElementById('prompt-input').value||'[]');var n=${attrJson(def.name)};var i=t.indexOf(n);if(i>=0)t.splice(i,1);else if(t.length<5)t.push(n);document.getElementById('prompt-input').value=JSON.stringify(t);document.getElementById('tag-picker-div').innerHTML='';if(window._tagRefresh)window._tagRefresh();})()">${escapeHtml(def.name)}</span>
+                            <button type="button" title="Delete tag" onclick="deleteTagDef(${attrJson(def.name)})" style="background:none;border:none;cursor:pointer;color:var(--text-tertiary);font-size:11px;padding:0 2px;line-height:1;" aria-label="Delete tag ${escapeHtml(def.name)}">${icon('close', 10)}</button>
                         </span>`;
                     }).join('')}
                 </div>
@@ -4068,7 +4087,7 @@
                 </div>
                 <div style="display:flex;gap:6px;">
                     <input id="new-tag-name" placeholder="New tag name…" style="flex:1;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:6px;padding:5px 10px;color:var(--text-primary);font-size:13px;outline:none;">
-                    <button type="button" onclick="(function(){var name=document.getElementById('new-tag-name').value.trim();var color=window._tagSelColor||'${TAG_COLORS[0]}';if(!name)return;if(!tagDefs.find(d=>d.name===name))tagDefs.push({name:name,color:color});localStorage.setItem('tagDefs',JSON.stringify(tagDefs));var t=JSON.parse(document.getElementById('prompt-input').value||'[]');if(!t.includes(name)&&t.length<5)t.push(name);document.getElementById('prompt-input').value=JSON.stringify(t);if(window._tagRefresh)window._tagRefresh();})()" style="background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:6px;padding:5px 10px;cursor:pointer;color:var(--text-secondary);font-size:13px;">Add</button>
+                    <button type="button" onclick="(function(){var name=document.getElementById('new-tag-name').value.trim().slice(0,24);var color=window._tagSelColor||'${TAG_COLORS[0]}';if(!name)return;if(!tagDefs.find(d=>d.name===name))tagDefs.push({name:name,color:color});localStorage.setItem('tagDefs',JSON.stringify(tagDefs));var t=JSON.parse(document.getElementById('prompt-input').value||'[]');if(!t.includes(name)&&t.length<5)t.push(name);document.getElementById('prompt-input').value=JSON.stringify(t);if(window._tagRefresh)window._tagRefresh();})()" style="background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:6px;padding:5px 10px;cursor:pointer;color:var(--text-secondary);font-size:13px;">Add</button>
                 </div>
             `;
         }
@@ -4879,32 +4898,14 @@
     document.addEventListener('keydown', function(e) {
         const inInput = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
         if (paletteOpen) return;
-        if (e.key === 'Escape') { closeTaskMenu(); if (detailTaskId !== null) closeDetail(); }
 
-        // Escape: close modals / clear search focus
-        if (e.key === 'Escape') {
-            if (document.getElementById('date-popover').classList.contains('open')) { closeDatePopover(); return; }
-            if (document.getElementById('templates-overlay').classList.contains('open')) { closeTemplates(); return; }
-            if (document.getElementById('shortcuts-overlay').style.display !== 'none') { document.getElementById('shortcuts-overlay').style.display = 'none'; return; }
-            if (document.getElementById('move-overlay').style.display !== 'none') moveTaskCancel();
-            else if (document.getElementById('prompt-overlay').style.display !== 'none') promptCancel();
-            else if (document.getElementById('modal-overlay').style.display !== 'none') modalCancel();
-            else if (focusMode) toggleFocusMode();
-            else closeSidebar();
+        // Ctrl/Cmd+K and Ctrl/Cmd+N work from anywhere, the add-task and search
+        // fields included — those are exactly where the cursor tends to be.
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === '/')) {
+            e.preventDefault();
+            if (paletteOpen) closePalette(); else openPalette();
             return;
         }
-        if (inInput) return;
-        // ?: open shortcuts cheatsheet
-        if (e.key === '?') {
-            document.getElementById('shortcuts-overlay').style.display = 'flex';
-            return;
-        }
-        // F: toggle focus mode
-        if (e.key === 'f' || e.key === 'F') {
-            toggleFocusMode();
-            return;
-        }
-        // Ctrl/Cmd+N: focus task input
         if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
             e.preventDefault();
             if (currentView !== 'all') switchView('all');
@@ -4912,15 +4913,51 @@
                 const inp = document.getElementById('task-input');
                 if (inp) inp.focus();
             }, currentView !== 'all' ? 50 : 0);
+            return;
         }
-        // Ctrl/Cmd+K or Ctrl+/: the command palette
-        if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === '/')) {
-            e.preventDefault();
-            if (paletteOpen) closePalette(); else openPalette();
+
+        // Escape: close whatever is on top, one layer per press
+        if (e.key === 'Escape') {
+            if (document.getElementById('task-menu').classList.contains('open')) { closeTaskMenu(); return; }
+            if (document.getElementById('date-popover').classList.contains('open')) { closeDatePopover(); return; }
+            if (document.getElementById('templates-overlay').classList.contains('open')) { closeTemplates(); return; }
+            if (document.getElementById('shortcuts-overlay').style.display !== 'none') { document.getElementById('shortcuts-overlay').style.display = 'none'; return; }
+            if (document.getElementById('move-overlay').style.display !== 'none') moveTaskCancel();
+            else if (document.getElementById('prompt-overlay').style.display !== 'none') promptCancel();
+            else if (document.getElementById('modal-overlay').style.display !== 'none') modalCancel();
+            else if (detailTaskId !== null) closeDetail();
+            else if (focusMode) toggleFocusMode();
+            else closeSidebar();
+            return;
+        }
+        if (inInput) return;
+
+        // Task shortcuts on the focused row — these are the keys the context
+        // menu prints beside each action, so they have to actually exist.
+        if (!e.ctrlKey && !e.metaKey && !e.altKey &&
+            document.activeElement.classList &&
+            document.activeElement.classList.contains('task-wrapper')) {
+            const actionId = TASK_KEYS[e.key];
+            if (actionId) {
+                e.preventDefault();
+                const taskId = parseInt(document.activeElement.getAttribute('data-task-id'), 10);
+                if (taskId) runTaskAction(actionId, taskId);
+                return;
+            }
+        }
+
+        // ?: open shortcuts cheatsheet
+        if (e.key === '?') {
+            document.getElementById('shortcuts-overlay').style.display = 'flex';
+            return;
+        }
+        // f: toggle focus mode (shift+F starts a pomodoro on the focused task)
+        if (e.key === 'f') {
+            toggleFocusMode();
             return;
         }
         // Arrow navigation within task list
-        if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && !inInput) {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
             const wrappers = [...document.querySelectorAll('.task-wrapper[tabindex="0"]')];
             const idx = wrappers.indexOf(document.activeElement);
             if (idx !== -1) {
@@ -4928,11 +4965,6 @@
                 const next = wrappers[idx + (e.key === 'ArrowDown' ? 1 : -1)];
                 if (next) next.focus();
             }
-        }
-        // Delete key on focused task
-        if (e.key === 'Delete' && !inInput && document.activeElement.classList.contains('task-wrapper')) {
-            const taskId = parseInt(document.activeElement.getAttribute('data-task-id'));
-            if (taskId) deleteTask(taskId);
         }
     });
 
