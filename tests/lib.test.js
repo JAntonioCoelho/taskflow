@@ -12,8 +12,11 @@ const {
     formatDueDate,
     parseNaturalDate,
     parseQuickAdd,
+    pickMyDaySuggestions,
+    addDays,
     renderMarkdown,
 } = require('../lib.js');
+
 
 const dayOffset = (n) => {
     const d = new Date();
@@ -157,5 +160,81 @@ describe('renderMarkdown', () => {
     test('empty input renders nothing', () => {
         expect(renderMarkdown('')).toBe('');
         expect(renderMarkdown(null)).toBe('');
+    });
+});
+
+describe('addDays', () => {
+    test('moves forward and backward', () => {
+        expect(addDays('2026-09-18', 7)).toBe('2026-09-25');
+        expect(addDays('2026-09-18', -1)).toBe('2026-09-17');
+    });
+
+    test('crosses month and year boundaries', () => {
+        expect(addDays('2026-01-31', 1)).toBe('2026-02-01');
+        expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
+    });
+
+    test('handles a leap day', () => {
+        expect(addDays('2028-02-28', 1)).toBe('2028-02-29');
+    });
+});
+
+describe('pickMyDaySuggestions', () => {
+    const TODAY = '2026-09-18';
+
+    test('suggests overdue, due-soon and priority tasks', () => {
+        const tasks = [
+            { text: 'overdue', dueDate: '2026-09-10' },
+            { text: 'soon', dueDate: '2026-09-21' },
+            { text: 'starred', priority: true },
+        ];
+        expect(pickMyDaySuggestions(tasks, TODAY, 5).map((t) => t.text)).toEqual([
+            'overdue',
+            'soon',
+            'starred',
+        ]);
+    });
+
+    test('leaves out what is already in My Day or due today', () => {
+        const tasks = [
+            { text: 'already in', today: true, priority: true },
+            { text: 'due today', dueDate: TODAY },
+            { text: 'done', completed: true, priority: true },
+        ];
+        expect(pickMyDaySuggestions(tasks, TODAY, 5)).toEqual([]);
+    });
+
+    test('ignores tasks due beyond a week', () => {
+        const tasks = [{ text: 'far', dueDate: '2026-12-01' }];
+        expect(pickMyDaySuggestions(tasks, TODAY, 5)).toEqual([]);
+    });
+
+    test('includes the far edge of the week window', () => {
+        const tasks = [{ text: 'edge', dueDate: addDays(TODAY, 7) }];
+        expect(pickMyDaySuggestions(tasks, TODAY, 5).map((t) => t.text)).toEqual(['edge']);
+    });
+
+    test('orders overdue first, then by nearest deadline', () => {
+        const tasks = [
+            { text: 'later', dueDate: '2026-09-22' },
+            { text: 'very overdue', dueDate: '2026-09-01' },
+            { text: 'sooner', dueDate: '2026-09-19' },
+            { text: 'just overdue', dueDate: '2026-09-17' },
+        ];
+        expect(pickMyDaySuggestions(tasks, TODAY, 5).map((t) => t.text)).toEqual([
+            'very overdue',
+            'just overdue',
+            'sooner',
+            'later',
+        ]);
+    });
+
+    test('respects the limit', () => {
+        const tasks = [1, 2, 3, 4, 5, 6, 7].map((n) => ({ text: 't' + n, priority: true }));
+        expect(pickMyDaySuggestions(tasks, TODAY, 5)).toHaveLength(5);
+    });
+
+    test('an empty list suggests nothing', () => {
+        expect(pickMyDaySuggestions([], TODAY, 5)).toEqual([]);
     });
 });

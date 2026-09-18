@@ -99,6 +99,36 @@ function parseQuickAdd(raw) {
     return result;
 }
 
+function addDays(isoDate, days) {
+    const d = new Date(isoDate + 'T00:00:00');
+    d.setDate(d.getDate() + days);
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/**
+ * MY DAY SUGGESTIONS — what is worth pulling into today.
+ * Tasks already in My Day, or due today, are left out: they show up anyway.
+ * Overdue first, then the nearest deadline, then priority.
+ */
+function pickMyDaySuggestions(tasks, todayStr, limit) {
+    const weekStr = addDays(todayStr, 7);
+    const isOverdue = t => !!t.dueDate && t.dueDate < todayStr;
+    const picked = tasks.filter(function(t) {
+        if (t.completed || t.today || t.dueDate === todayStr) return false;
+        const soon = !!t.dueDate && t.dueDate > todayStr && t.dueDate <= weekStr;
+        return isOverdue(t) || soon || !!t.priority;
+    });
+    picked.sort(function(a, b) {
+        if (isOverdue(a) !== isOverdue(b)) return isOverdue(a) ? -1 : 1;
+        if (!!a.dueDate !== !!b.dueDate) return a.dueDate ? -1 : 1;
+        if (a.dueDate && b.dueDate && a.dueDate !== b.dueDate) return a.dueDate.localeCompare(b.dueDate);
+        if (!!a.priority !== !!b.priority) return a.priority ? -1 : 1;
+        return 0;
+    });
+    return picked.slice(0, limit || 5);
+}
+
 // MARKDOWN NOTES RENDERER
 function renderMarkdown(text) {
     if (!text) return '';
@@ -134,7 +164,7 @@ function renderMarkdown(text) {
 
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
-        escapeHtml, getTodayStr, isDueOverdue, isDueToday,
-        formatDueDate, parseNaturalDate, parseQuickAdd, renderMarkdown
+        escapeHtml, getTodayStr, isDueOverdue, isDueToday, addDays,
+        formatDueDate, parseNaturalDate, parseQuickAdd, pickMyDaySuggestions, renderMarkdown
     };
 }

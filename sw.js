@@ -1,4 +1,4 @@
-const CACHE = 'taskflow-v2';
+const CACHE = 'taskflow-v3';
 const ASSETS = ['./', './lib.js', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', function(e) {
@@ -13,6 +13,20 @@ self.addEventListener('activate', function(e) {
     self.clients.claim();
 });
 
+// Network first, cache as fallback. Cache-first served stale builds until someone
+// remembered to bump CACHE by hand; this way a deploy lands immediately and
+// offline still works off the last response we saw.
 self.addEventListener('fetch', function(e) {
-    e.respondWith(caches.match(e.request).then(function(r) { return r || fetch(e.request); }));
+    if (e.request.method !== 'GET') return;
+    e.respondWith(
+        fetch(e.request).then(function(res) {
+            const copy = res.clone();
+            caches.open(CACHE).then(function(c) { c.put(e.request, copy); }).catch(function() {});
+            return res;
+        }).catch(function() {
+            return caches.match(e.request).then(function(hit) {
+                return hit || caches.match('./');
+            });
+        })
+    );
 });

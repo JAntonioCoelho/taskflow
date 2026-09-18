@@ -13,7 +13,7 @@ A modern, sleek task management application with dark/light mode, inspired by Sp
 - ⭐ Mark tasks as priority
 - 🍅 Pomodoro timer you can point at a single task
 - 🗑️ Trash — deleted tasks recoverable for 30 days
-- ⚡ Set tasks for today
+- ⚡ My Day — a daily list that clears itself each morning, with suggestions
 - 🌓 Dark Mode / Light Mode toggle
 - 📊 Detailed statistics dashboard
 - 📱 Fully responsive design
@@ -88,15 +88,25 @@ Call the bank #work #urgent !tomorrow *
 ### Managing Tasks
 - **Complete**: Click the circle checkbox
 - **Priority**: Click the ⭐ button
-- **Today**: Click the ⚡ button
+- **My Day**: Click the ⚡ button to commit to it today
 - **Pomodoro**: Click the 🍅 button to run the timer on that task
 - **Edit**: Click the ✏️ button
 - **Delete**: Click the 🗑️ button — recoverable from Trash for 30 days
 
+### My Day
+
+My Day is what you are actually doing today, not everything that happens to be
+due. It empties itself when the date turns over, so each morning you choose
+again instead of inheriting a stale list.
+
+Under the list, **Suggestions** offers up to five tasks worth pulling in —
+overdue first, then the nearest deadlines, then anything starred. Tasks already
+due today are left out because they show up on their own.
+
 ### Organizing
 - Use the sidebar to switch between lists
 - Create custom lists with ➕ New List
-- Filter by "All", "Today", or "Priority"
+- Filter by "All", "My Day", or "Priority"
 - View statistics in the Stats tab
 
 ### Theme Toggle
