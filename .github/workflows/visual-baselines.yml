@@ -52,7 +52,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REASON: ${{ inputs.reason }}
         run: |
-          if git diff --quiet -- tests-visual; then
+          # --porcelain, not `git diff`: on the first run for a platform every
+          # baseline is a new untracked file, which `git diff` does not see.
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          if [ -z "$(git status --porcelain -- tests-visual)" ]; then
             echo "Baselines already match this platform — nothing to do."
             exit 0
           fi
