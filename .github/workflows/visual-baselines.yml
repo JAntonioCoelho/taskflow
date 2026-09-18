@@ -20,8 +20,8 @@ on:
         default: 'Generate the Linux set'
 
 permissions:
+  # Pushing the branch is all it does; the pull request is opened by hand.
   contents: write
-  pull-requests: write
 
 jobs:
   update:
@@ -74,37 +74,27 @@ jobs:
           stage runs in."
           git push origin "$BRANCH"
 
-          # The GitHub CLI ships with the runner image, not with this
-          # container, so the pull request goes through the API directly.
-          BRANCH="$BRANCH" BASE="$GITHUB_REF_NAME" node -e '
-            const body = [
-              process.env.REASON,
-              "",
-              "These PNGs were generated in the same container the E2E stage uses, so they are what that stage will compare against.",
-              "",
-              "**Review the images themselves.** A baseline change says the new rendering is the correct one; if a screenshot here looks wrong, the code is what needs fixing, not the baseline."
-            ].join("\n");
-            fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/pulls`, {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${process.env.GH_TOKEN}`,
-                Accept: "application/vnd.github+json",
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({
-                title: "chore: refresh visual baselines (linux)",
-                body,
-                head: process.env.BRANCH,
-                base: process.env.BASE
-              })
-            })
-              .then(async (r) => {
-                const json = await r.json();
-                if (!r.ok) { console.error(json); process.exit(1); }
-                console.log("Opened " + json.html_url);
-              })
-              .catch((e) => { console.error(e); process.exit(1); });
-          '
+          # The branch is pushed; opening the pull request is left to a click.
+          # Actions cannot create one unless "Allow GitHub Actions to create
+          # and approve pull requests" is enabled in the repository settings,
+          # and requiring that setting to make the workflow usable is worse
+          # than printing a link.
+          COMPARE="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/compare/${GITHUB_REF_NAME}...${BRANCH}?expand=1"
+          {
+            echo "### Visual baselines regenerated"
+            echo ""
+            echo "$REASON"
+            echo ""
+            echo "Pushed to \`$BRANCH\`. **[Open the pull request]($COMPARE)**"
+            echo ""
+            echo "These PNGs come from the same container the E2E stage runs in,"
+            echo "so they are what that stage will compare against."
+            echo ""
+            echo "Review the images themselves. A baseline change says the new"
+            echo "rendering is the correct one — if a screenshot looks wrong, the"
+            echo "code needs fixing, not the baseline."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Branch pushed. Open the PR: $COMPARE"
 
       - name: Upload the screenshots
         if: always()
