@@ -173,9 +173,19 @@ npm install
 npm test
 ```
 
-Pure helpers (date parsing, quick-add syntax, markdown, HTML escaping) live in
-`lib.js` so they can be tested directly; `tests/lib.test.js` covers them.
-The UI itself stays in `index.html`.
+Two suites:
+
+- `tests/lib.test.js` covers the pure helpers in `lib.js` — date parsing,
+  quick-add syntax, recurrence, markdown, escaping.
+- `tests/app.test.js` boots the real `index.html` in jsdom and drives it:
+  adding and completing tasks, the trash round trip, recurrence generating the
+  next instance, My Day's daily reset, the detail panel, the context menu and
+  the command palette. It loads the shipped file rather than a copy, so it
+  fails when the app breaks, not when a fixture drifts.
+
+The suite was checked by breaking things on purpose — routing deletions past
+the trash, dropping the panel refresh, ignoring quick-add tags — and
+confirming the matching tests failed.
 
 Tests run automatically on every push via GitHub Actions.
 

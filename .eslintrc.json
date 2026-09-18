@@ -5,16 +5,62 @@
     "jest": true,
     "node": true
   },
-  "extends": ["eslint:recommended", "prettier"],
+  "extends": [
+    "eslint:recommended",
+    "prettier"
+  ],
   "parserOptions": {
     "ecmaVersion": 2021,
     "sourceType": "script"
   },
   "rules": {
-    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
-    "eqeqeq": ["error", "always"],
+    "no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_"
+      }
+    ],
+    "eqeqeq": [
+      "error",
+      "always"
+    ],
     "no-var": "error",
     "prefer-const": "warn",
     "no-console": "warn"
-  }
+  },
+  "overrides": [
+    {
+      "files": [
+        "tests/app.test.js",
+        "tests/helpers/boot.js"
+      ],
+      "globals": {
+        "__app": "readonly",
+        "addTask": "readonly",
+        "clearCompleted": "readonly",
+        "closeDetail": "readonly",
+        "closePalette": "readonly",
+        "closeTaskMenu": "readonly",
+        "deleteTask": "readonly",
+        "getTodayStr": "readonly",
+        "modalConfirm": "readonly",
+        "openDetail": "readonly",
+        "openPalette": "readonly",
+        "openTagPicker": "readonly",
+        "openTaskMenu": "readonly",
+        "promptCancel": "readonly",
+        "renderDetail": "readonly",
+        "renderLists": "readonly",
+        "renderPalette": "readonly",
+        "resetMyDayIfNewDay": "readonly",
+        "restoreFromTrash": "readonly",
+        "runTaskAction": "readonly",
+        "saveDetailTitle": "readonly",
+        "selectList": "readonly",
+        "switchView": "readonly",
+        "toggleTask": "readonly",
+        "toggleToday": "readonly"
+      }
+    }
+  ]
 }
