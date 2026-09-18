@@ -187,6 +187,29 @@ The suite was checked by breaking things on purpose — routing deletions past
 the trash, dropping the panel refresh, ignoring quick-add tags — and
 confirming the matching tests failed.
 
+### Visual regression
+
+```bash
+npm run test:visual          # compare against the committed baselines
+npm run test:visual:update   # accept the current rendering as the new baseline
+npm run test:all             # both suites
+```
+
+Neither Jest suite can see a layout break — a collapsed grid, a CSS rule the
+parser dropped, buttons overflowing a phone. `tests-visual/` drives the real
+page in Chromium at desktop and phone size and compares screenshots, with the
+clock, the task data and the tag colours pinned so a screenshot only changes
+when the layout does.
+
+Run `npm run test:visual:update` and commit the new PNGs whenever a change to
+the design is intended; review the diff images in `playwright-report/` when it
+was not.
+
+**Baselines are per platform.** Playwright names them `…-win32.png`, so a run
+on Linux or macOS will report them missing rather than compare. That is why
+this suite is not part of the GitHub Actions workflow, which runs on Ubuntu —
+wiring it up means generating a Linux set first.
+
 Tests run automatically on every push via GitHub Actions.
 
 ## 🔒 Security

@@ -32,3 +32,9 @@ build/
 # Tooling
 .eslintcache
 *.local
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+.playwright-cli/
