@@ -1033,11 +1033,8 @@
             padding-right: 16px;
         }
 
-        /* Scoped so the later .radio-widget rule cannot win on source order —
-           this was meant to be hidden on phones and quietly never was. */
-        .header .radio-widget {
-            display: none;
-        }
+@@@END@@@
+
 
         /* Larger touch targets */
         .task-btn {
@@ -1770,6 +1767,14 @@
         .task-menu { min-width: 236px; }
         .task-menu-item { height: 42px; font-size: 13.5px; }
         .task-menu-sep { margin: 4px 9px; }
+
+        /* The radio stays on phones, but as bars + play only. At full width it
+           was 297px of a 375px header. The station name is the same every day
+           and volume belongs to the phone's own buttons. */
+        .header .radio-widget { padding: 6px; gap: 8px; }
+        .header .radio-info,
+        .header .radio-volume { display: none; }
+        .header .radio-play-btn { width: 36px; height: 36px; }
     }
 
 </style>
