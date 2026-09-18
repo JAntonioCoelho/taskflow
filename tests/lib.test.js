@@ -14,8 +14,10 @@ const {
     parseQuickAdd,
     pickMyDaySuggestions,
     addDays,
+    backupStatus,
     renderMarkdown,
 } = require('../lib.js');
+
 
 
 const dayOffset = (n) => {
@@ -236,5 +238,40 @@ describe('pickMyDaySuggestions', () => {
 
     test('an empty list suggests nothing', () => {
         expect(pickMyDaySuggestions([], TODAY, 5)).toEqual([]);
+    });
+});
+
+describe('backupStatus', () => {
+    const NOW = Date.parse('2026-09-18T12:00:00Z');
+    const daysAgo = (n) => new Date(NOW - n * 86400000).toISOString();
+
+    test('says nothing when there is nothing to lose', () => {
+        expect(backupStatus(null, NOW, 0)).toEqual({ state: 'empty', days: null });
+        expect(backupStatus(daysAgo(99), NOW, 0).state).toBe('empty');
+    });
+
+    test('flags tasks that have never been exported', () => {
+        expect(backupStatus(null, NOW, 5)).toEqual({ state: 'never', days: null });
+    });
+
+    test('treats an unreadable timestamp as never exported', () => {
+        expect(backupStatus('not a date', NOW, 5).state).toBe('never');
+    });
+
+    test('a recent export is fine', () => {
+        expect(backupStatus(daysAgo(0), NOW, 5)).toEqual({ state: 'ok', days: 0 });
+        expect(backupStatus(daysAgo(13), NOW, 5)).toEqual({ state: 'ok', days: 13 });
+    });
+
+    test('goes stale at two weeks', () => {
+        expect(backupStatus(daysAgo(14), NOW, 5).state).toBe('stale');
+        expect(backupStatus(daysAgo(60), NOW, 5)).toEqual({ state: 'stale', days: 60 });
+    });
+
+    test('a timestamp in the future does not report negative days', () => {
+        expect(backupStatus(new Date(NOW + 86400000).toISOString(), NOW, 5)).toEqual({
+            state: 'ok',
+            days: 0,
+        });
     });
 });

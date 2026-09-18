@@ -158,6 +158,20 @@ All data is stored **locally** in your browser using `localStorage`:
 
 **Note**: Data is device-specific. Using the app on different devices creates separate task lists.
 
+### Keeping your data
+
+`localStorage` is private, but it is not permanent storage — browsers may evict
+it under disk pressure, and "clear site data" wipes it. Two things guard against
+that, both in Statistics → Data Management:
+
+- **Protect storage** asks the browser to exempt this site from automatic
+  cleanup (`navigator.storage.persist()`). Browsers grant this on their own
+  terms — installed PWAs usually qualify, a tab you opened once may not. The
+  status line tells you which one you have; it never claims protection you do
+  not have.
+- **Export JSON** is the only copy that survives everything. The app shows when
+  you last exported and warns after two weeks.
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please:

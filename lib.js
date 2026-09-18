@@ -129,6 +129,21 @@ function pickMyDaySuggestions(tasks, todayStr, limit) {
     return picked.slice(0, limit || 5);
 }
 
+const BACKUP_STALE_DAYS = 14;
+
+/**
+ * BACKUP FRESHNESS — localStorage is not durable storage, so an export is the
+ * only copy that survives the browser clearing its data.
+ * "empty" means there is nothing worth backing up yet.
+ */
+function backupStatus(lastExportAt, nowMs, taskCount) {
+    if (!taskCount) return { state: 'empty', days: null };
+    const then = lastExportAt ? new Date(lastExportAt).getTime() : NaN;
+    if (isNaN(then)) return { state: 'never', days: null };
+    const days = Math.floor((nowMs - then) / 86400000);
+    return { state: days >= BACKUP_STALE_DAYS ? 'stale' : 'ok', days: Math.max(0, days) };
+}
+
 // MARKDOWN NOTES RENDERER
 function renderMarkdown(text) {
     if (!text) return '';
@@ -164,7 +179,7 @@ function renderMarkdown(text) {
 
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
-        escapeHtml, getTodayStr, isDueOverdue, isDueToday, addDays,
+        escapeHtml, getTodayStr, isDueOverdue, isDueToday, addDays, backupStatus,
         formatDueDate, parseNaturalDate, parseQuickAdd, pickMyDaySuggestions, renderMarkdown
     };
 }

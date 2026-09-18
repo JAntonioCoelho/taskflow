@@ -1312,6 +1312,10 @@
 
     .data-btn:hover { background: var(--bg-hover); }
     .data-hint { font-size: 12px; color: var(--text-tertiary); line-height: 1.5; }
+    .data-status { font-size: 12px; line-height: 1.6; margin-top: 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .data-ok { color: var(--text-tertiary); }
+    .data-warn { color: var(--accent-orange); font-weight: 500; }
+    .data-btn-inline { padding: 3px 10px; font-size: 12px; }
 
     /* POMODORO CUSTOM SETTINGS */
     .pomodoro-settings {
@@ -1889,6 +1893,8 @@
                         </label>
                     </div>
                     <p class="data-hint">Export saves all lists and tasks as a JSON file. Import replaces all current data.</p>
+                    <div class="data-status" id="backup-status"></div>
+                    <div class="data-status" id="storage-status"></div>
                 </div>
                 <div class="pomo-chart">
                     <div class="pomo-chart-title">🍅 Pomodoros — Last 7 Days</div>
@@ -2116,6 +2122,8 @@
         updateDate();
         pruneTrash();
         resetMyDayIfNewDay();
+        // Only ask once there is something to lose — a prompt on an empty app is noise
+        if (lists.some(function(l) { return l.tasks.length > 0; })) requestPersistence();
         if (compactMode) {
             document.getElementById('content-area').classList.add('compact-mode');
             const btn = document.getElementById('compact-btn');
@@ -3312,6 +3320,7 @@
         if (overdueEl) overdueEl.textContent = overdue;
         renderPomodoroChart();
         renderDoneChart();
+        updateDataStatus();
     }
 
     // SAVE
@@ -4197,6 +4206,48 @@
         } catch (e) { /* ignore malformed hash */ }
     }
 
+    // STORAGE DURABILITY
+    // localStorage is not durable: browsers evict it under pressure and
+    // "clear site data" wipes it. These two are the whole safety net.
+    function requestPersistence() {
+        if (!navigator.storage || !navigator.storage.persist) return;
+        navigator.storage.persisted()
+            .then(function(already) { return already || navigator.storage.persist(); })
+            .then(function() { updateStorageStatus(); })
+            .catch(function() {});
+    }
+
+    function updateStorageStatus() {
+        const el = document.getElementById('storage-status');
+        if (!el) return;
+        if (!navigator.storage || !navigator.storage.persisted) { el.innerHTML = ''; return; }
+        navigator.storage.persisted().then(function(persisted) {
+            el.innerHTML = persisted
+                ? '<span class="data-ok">🔒 Storage is protected from automatic cleanup.</span>'
+                : '<span class="data-warn">⚠️ This browser may clear your tasks on its own.</span> <button class="data-btn data-btn-inline" onclick="requestPersistence()">Protect storage</button>';
+        }).catch(function() { el.innerHTML = ''; });
+    }
+
+    function updateBackupStatus() {
+        const el = document.getElementById('backup-status');
+        if (!el) return;
+        const taskCount = lists.reduce(function(n, l) { return n + l.tasks.length; }, 0);
+        const status = backupStatus(localStorage.getItem('lastExportAt'), Date.now(), taskCount);
+        if (status.state === 'empty') { el.innerHTML = ''; return; }
+        if (status.state === 'never') {
+            el.innerHTML = '<span class="data-warn">⚠️ Never exported — your tasks exist only in this browser.</span>';
+        } else if (status.state === 'stale') {
+            el.innerHTML = '<span class="data-warn">⚠️ Last export was ' + status.days + ' days ago.</span>';
+        } else {
+            el.innerHTML = '<span class="data-ok">✅ Last export ' + (status.days === 0 ? 'today' : status.days === 1 ? 'yesterday' : status.days + ' days ago') + '.</span>';
+        }
+    }
+
+    function updateDataStatus() {
+        updateBackupStatus();
+        updateStorageStatus();
+    }
+
     // EXPORT / IMPORT
     function exportData() {
         const data = JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), lists: lists }, null, 2);
@@ -4209,6 +4260,8 @@
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+        localStorage.setItem('lastExportAt', new Date().toISOString());
+        updateDataStatus();
     }
 
     function importData(input) {
