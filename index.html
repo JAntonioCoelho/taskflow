@@ -5,6 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TaskFlow - Modern Task Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -13,37 +16,40 @@
         }
 
     :root {
-        --bg-primary: #000000;
-        --bg-secondary: #121212;
-        --bg-tertiary: #181818;
-        --bg-hover: #1a1a1a;
-        --border-color: #282828;
-        --text-primary: #ffffff;
-        --text-secondary: #b3b3b3;
-        --text-tertiary: #535353;
+        --bg-primary: #0E0E11;
+        --bg-secondary: #131317;
+        --bg-tertiary: #17171C;
+        --bg-hover: #1C1C22;
+        --border-color: #26262C;
+        --text-primary: #EDEDEF;
+        --text-secondary: #9B9BA3;
+        --text-tertiary: #82828C;
         --accent-green: #1DB954;
-        --accent-green-hover: #1ed760;
-        --accent-red: #e22134;
-        --accent-orange: #ffa500;
+        --accent-green-hover: #2BD96B;
+        --accent-red: #E5484D;
+        --accent-orange: #E0A458;
+        /* Soft warning — overdue should inform, not shout. Destructive stays --accent-red. */
+        --accent-coral: #E88B7D;
     }
 
     body.light-mode {
-        --bg-primary: #ffffff;
-        --bg-secondary: #f8f9fa;
-        --bg-tertiary: #ffffff;
-        --bg-hover: #f1f3f4;
-        --border-color: #e0e0e0;
-        --text-primary: #000000;
-        --text-secondary: #5f6368;
-        --text-tertiary: #9aa0a6;
-        --accent-green: #1DB954;
-        --accent-green-hover: #1aa34a;
-        --accent-red: #d93025;
-        --accent-orange: #f9ab00;
+        --bg-primary: #FFFFFF;
+        --bg-secondary: #FAFAFA;
+        --bg-tertiary: #FFFFFF;
+        --bg-hover: #F4F4F5;
+        --border-color: #E4E4E7;
+        --text-primary: #18181B;
+        --text-secondary: #52525B;
+        --text-tertiary: #71717A;
+        --accent-green: #15883E;
+        --accent-green-hover: #0F6B30;
+        --accent-red: #DC2626;
+        --accent-orange: #B45309;
+        --accent-coral: #C2410C;
     }
 
     body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+        font-family: 'Schibsted Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         background: var(--bg-primary);
         min-height: 100vh;
         color: var(--text-primary);
@@ -152,26 +158,42 @@
     }
 
     .nav-icon {
-        font-size: 22px;
-        width: 24px;
-        text-align: center;
+        width: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-tertiary);
     }
+    .nav-item.active .nav-icon { color: var(--accent-green); }
 
+    /* ICONS — inline SVG, sized by the call site, coloured by the parent */
+    .icon { flex-shrink: 0; display: block; }
+    [data-icon] { display: inline-flex; align-items: center; }
+    .task-due-date .icon,
+    .subtask-progress .icon,
+    .streak-badge .icon,
+    .pomo-count-badge .icon,
+    .trash-age .icon,
+    .data-ok .icon,
+    .data-warn .icon { display: inline-block; vertical-align: -0.12em; }
+    .empty-icon .icon { margin: 0 auto; opacity: 0.55; }
+
+    /* A count is a number, not a badge. Pills everywhere meant none of them read. */
     .nav-badge {
         margin-left: auto;
-        background: var(--bg-tertiary);
-        color: var(--text-primary);
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 11px;
-        font-weight: 700;
-        border: 1px solid var(--border-color);
+        background: none;
+        border: none;
+        padding: 0;
+        color: var(--text-tertiary);
+        font-size: 11.5px;
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
     }
 
     .nav-item.active .nav-badge {
-        background: var(--accent-green);
-        color: #000000;
-        border-color: var(--accent-green);
+        background: none;
+        color: var(--text-secondary);
+        border-color: transparent;
     }
 
     .list-item {
@@ -419,35 +441,33 @@
     }
 
     .task {
-        background: var(--bg-tertiary);
-        padding: 16px 20px;
-        border-radius: 8px;
+        background: transparent;
+        padding: 12px 12px;
+        border-radius: 9px;
         display: flex;
         align-items: center;
-        gap: 16px;
-        transition: all 0.2s;
+        gap: 13px;
+        transition: background 0.15s;
         position: relative;
-        border: 1px solid var(--border-color);
+        border: none;
+        border-bottom: 1px solid var(--border-color);
     }
 
     .task:hover {
-        background: var(--bg-hover);
+        background: var(--bg-tertiary);
     }
 
     .task.completed {
-        opacity: 0.5;
+        opacity: 0.55;
     }
 
-    .task.priority {
-        border-left: 3px solid var(--accent-red);
-    }
-
-    .task.today {
-        border-left: 3px solid var(--accent-green);
-    }
-
+    /* Priority and My Day are already said by the badges; a coloured rail per
+       state meant every row had one and the rail stopped meaning anything.
+       Only overdue and pinned keep a rail. */
+    .task.priority,
+    .task.today,
     .task.priority.today {
-        border-left: 3px solid var(--accent-orange);
+        border-left: none;
     }
 
     .task-checkbox {
@@ -487,8 +507,9 @@
 
     .task-text {
         color: var(--text-primary);
-        font-size: 14px;
-        font-weight: 500;
+        font-size: 13.5px;
+        font-weight: 400;
+        line-height: 1.35;
     }
 
     .task.completed .task-text {
@@ -608,9 +629,10 @@
     }
 
     .empty-icon {
-        font-size: 64px;
         margin-bottom: 16px;
-        opacity: 0.5;
+        color: var(--text-tertiary);
+        display: flex;
+        justify-content: center;
     }
 
     .empty-state p {
@@ -1240,11 +1262,13 @@
 
     /* DUE DATES */
     .task-meta {
-        font-size: 12px;
-        margin-top: 3px;
+        font-size: 11.5px;
+        margin-top: 5px;
         display: flex;
-        gap: 8px;
+        gap: 12px;
         flex-wrap: wrap;
+        align-items: center;
+        color: var(--text-tertiary);
     }
 
     .task-due-date {
@@ -1255,10 +1279,10 @@
     }
 
     .task-due-date.due-today  { color: var(--accent-orange); font-weight: 600; }
-    .task-due-date.overdue    { color: var(--accent-red);    font-weight: 600; }
+    .task-due-date.overdue    { color: var(--accent-coral);  font-weight: 600; }
 
     .task.has-overdue-date {
-        border-left: 3px solid var(--accent-red);
+        box-shadow: inset 2px 0 0 var(--accent-coral);
     }
 
     .date-btn {
@@ -1374,18 +1398,19 @@
     /* PREFERS COLOR SCHEME */
     @media (prefers-color-scheme: light) {
         :root {
-            --bg-primary: #ffffff;
-            --bg-secondary: #f8f9fa;
-            --bg-tertiary: #ffffff;
-            --bg-hover: #f1f3f4;
-            --border-color: #e0e0e0;
-            --text-primary: #000000;
-            --text-secondary: #5f6368;
-            --text-tertiary: #9aa0a6;
-            --accent-green: #1DB954;
-            --accent-green-hover: #1aa34a;
-            --accent-red: #d93025;
-            --accent-orange: #f9ab00;
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #FAFAFA;
+            --bg-tertiary: #FFFFFF;
+            --bg-hover: #F4F4F5;
+            --border-color: #E4E4E7;
+            --text-primary: #18181B;
+            --text-secondary: #52525B;
+            --text-tertiary: #71717A;
+            --accent-green: #15883E;
+            --accent-green-hover: #0F6B30;
+            --accent-red: #DC2626;
+            --accent-orange: #B45309;
+            --accent-coral: #C2410C;
         }
     }
 
@@ -1425,19 +1450,20 @@
     .subtask-input { flex: 1; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 5px 10px; color: var(--text-primary); font-size: 13px; outline: none; }
     .subtask-input:focus { border-color: var(--accent-green); }
     .subtask-add-btn { background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; padding: 5px 10px; cursor: pointer; color: var(--text-secondary); font-size: 13px; }
-    .subtask-progress { font-size: 11px; color: var(--text-tertiary); margin-left: 4px; }
+    .subtask-progress { font-size: 11px; color: var(--text-tertiary); margin-left: 4px; display: inline-flex; align-items: center; gap: 3px; }
     .subtasks-btn { background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color); }
     .subtasks-btn.active { color: var(--accent-green); }
 
     /* TAGS */
     .task-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
-    .tag-pill { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 12px; font-size: 11px; font-weight: 600; color: #fff; cursor: default; }
+    /* Outlined, not block-filled: the tag colour identifies without shouting. */
+    .tag-pill { display: inline-flex; align-items: center; gap: 3px; padding: 1px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; background: none; border: 1px solid currentColor; cursor: default; opacity: 0.85; }
     .tag-pill-remove { background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.8); font-size: 10px; padding: 0 1px; line-height: 1; }
     .tag-btn { background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color); }
     .tag-btn.active { color: var(--accent-green); }
     .tag-filter-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; align-items: center; }
-    .tag-filter-pill { padding: 3px 10px; border-radius: 12px; font-size: 12px; border: none; cursor: pointer; font-weight: 600; color: #fff; opacity: 0.55; transition: opacity 0.2s; }
-    .tag-filter-pill.active { opacity: 1; box-shadow: 0 0 0 2px var(--text-primary); }
+    .tag-filter-pill { padding: 2px 10px; border-radius: 12px; font-size: 12px; border: 1px solid currentColor; background: none; cursor: pointer; font-weight: 500; opacity: 0.6; transition: opacity 0.2s; }
+    .tag-filter-pill.active { opacity: 1; background: color-mix(in srgb, currentColor 16%, transparent); }
     .tag-filter-clear { padding: 3px 10px; border-radius: 12px; font-size: 12px; border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-secondary); cursor: pointer; }
     .tag-picker-overlay { padding: 8px 0; }
     .tag-picker-swatches { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
@@ -1482,7 +1508,7 @@
     }
 
     /* TAB COUNT BADGES */
-    .tab-badge { display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.18); border-radius: 10px; font-size: 11px; font-weight: 700; min-width: 18px; height: 18px; padding: 0 5px; margin-left: 6px; line-height: 1; vertical-align: middle; }
+    .tab-badge { display: inline-flex; align-items: center; justify-content: center; background: none; font-size: 11.5px; font-weight: 500; margin-left: 6px; line-height: 1; vertical-align: middle; opacity: 0.6; font-variant-numeric: tabular-nums; }
     .tab-btn.active .tab-badge { background: rgba(0,0,0,0.2); }
     .tab-badge:empty { display: none; }
 
@@ -1522,9 +1548,8 @@
     .color-swatch.selected { border-color: #fff; }
 
     /* PINNED TASKS */
-    .task.pinned { border-left: 3px solid var(--accent-green); opacity: 1; }
-    .task.pinned.priority { border-left: 3px solid var(--accent-red); }
-    .task.pinned.today { border-left: 3px solid var(--accent-orange); }
+    .task.pinned { box-shadow: inset 2px 0 0 var(--accent-green); opacity: 1; }
+    .task.pinned.has-overdue-date { box-shadow: inset 2px 0 0 var(--accent-coral); }
     .pin-btn { font-size: 13px; }
     .pin-btn.active { color: var(--accent-green) !important; }
     .pinned-divider { font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 8px 4px; opacity: 0.6; }
@@ -1536,8 +1561,8 @@
     .list-item > .list-progress { flex-basis: 100%; order: 10; margin: 4px 0 -2px; }
 
     /* HABIT STREAK */
-    .streak-badge { font-size: 11px; font-weight: 700; color: var(--accent-orange); background: rgba(255,152,0,0.12); border-radius: 6px; padding: 1px 5px; }
-    .streak-badge.hot { color: #ff5722; background: rgba(255,87,34,0.12); }
+    .streak-badge { font-size: 11px; font-weight: 700; color: var(--accent-orange); background: rgba(224,164,88,0.12); border-radius: 6px; padding: 1px 6px; display: inline-flex; align-items: center; gap: 3px; }
+    .streak-badge.hot { color: var(--accent-coral); background: rgba(232,139,125,0.12); }
 
     /* TASK TEMPLATES */
     .template-picker-btn { padding: 0 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-secondary); font-size: 15px; cursor: pointer; transition: all 0.2s; flex-shrink: 0; height: 38px; }
@@ -1617,7 +1642,7 @@
     .pomodoro-task span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
     .pomodoro-task-clear { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 11px; padding: 0 2px; line-height: 1; }
     .pomodoro-task-clear:hover { color: var(--accent-red); }
-    .pomo-count-badge { font-size: 11px; font-weight: 700; color: var(--accent-red); background: rgba(226,33,52,0.12); border-radius: 6px; padding: 1px 5px; }
+    .pomo-count-badge { font-size: 11px; font-weight: 700; color: var(--accent-coral); background: rgba(232,139,125,0.12); border-radius: 6px; padding: 1px 6px; display: inline-flex; align-items: center; gap: 3px; }
     .pomo-bar.done { background: var(--accent-orange); }
 
     /* DATE POPOVER — REMINDER TIME */
@@ -1682,7 +1707,7 @@
     /* TRASH */
     .task.trashed { opacity: 0.75; }
     .task.trashed .task-text { text-decoration: none; color: var(--text-secondary); }
-    .trash-age { font-size: 11px; color: var(--text-tertiary); }
+    .trash-age { font-size: 11px; color: var(--text-tertiary); display: inline-flex; align-items: center; gap: 4px; }
 </style>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1DB954">
@@ -1703,45 +1728,45 @@
             <div class="logo-container">
                 <div class="logo">TaskFlow</div>
                 <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">
-                    <span id="theme-icon">🌙</span>
+                    <span id="theme-icon"></span>
                 </button>
             </div>
 
         <div class="nav-section">
             <h2 class="nav-title">Menu</h2>
             <div class="nav-item active" data-view="all" role="button" tabindex="0" aria-label="All tasks">
-                <span class="nav-icon">📋</span>
+                <span class="nav-icon" data-icon="list"></span>
                 <span>All Tasks</span>
                 <span class="nav-badge" id="badge-all">0</span>
             </div>
             <div class="nav-item" data-view="today" role="button" tabindex="0" aria-label="My Day">
-                <span class="nav-icon">⚡</span>
+                <span class="nav-icon" data-icon="bolt"></span>
                 <span>My Day</span>
                 <span class="nav-badge" id="badge-today">0</span>
                 <span class="nav-badge-overdue" id="badge-overdue">0</span>
             </div>
             <div class="nav-item" data-view="upcoming" role="button" tabindex="0" aria-label="Upcoming tasks">
-                <span class="nav-icon">📅</span>
+                <span class="nav-icon" data-icon="calendar"></span>
                 <span>Upcoming</span>
                 <span class="nav-badge" id="badge-upcoming">0</span>
             </div>
             <div class="nav-item" data-view="priority" role="button" tabindex="0" aria-label="Priority tasks">
-                <span class="nav-icon">⭐</span>
+                <span class="nav-icon" data-icon="star"></span>
                 <span>Priority</span>
                 <span class="nav-badge" id="badge-priority">0</span>
             </div>
             <div class="nav-item" data-view="done" role="button" tabindex="0" aria-label="Completed tasks">
-                <span class="nav-icon">✅</span>
+                <span class="nav-icon" data-icon="checkCircle"></span>
                 <span>Done</span>
                 <span class="nav-badge" id="badge-done">0</span>
             </div>
             <div class="nav-item" data-view="trash" role="button" tabindex="0" aria-label="Trash">
-                <span class="nav-icon">🗑️</span>
+                <span class="nav-icon" data-icon="trash"></span>
                 <span>Trash</span>
                 <span class="nav-badge" id="badge-trash">0</span>
             </div>
             <div class="nav-item" data-view="stats" role="button" tabindex="0" aria-label="Statistics">
-                <span class="nav-icon">📊</span>
+                <span class="nav-icon" data-icon="chart"></span>
                 <span>Statistics</span>
             </div>
         </div>
@@ -1749,17 +1774,17 @@
         <div class="nav-section">
             <h2 class="nav-title">Lists</h2>
             <div id="lists-container"></div>
-            <button class="add-list-btn" onclick="addNewList()" aria-label="Add new list">➕ New List</button>
+            <button class="add-list-btn" onclick="addNewList()" aria-label="Add new list"><span data-icon="plus" data-icon-size="14"></span> New List</button>
         </div>
         </div>
         
         <!-- POMODORO TIMER -->
         <div class="sidebar-pomodoro">
             <div class="pomodoro-card">
-                <div class="pomodoro-header" id="pomodoro-status">🍅 POMODORO</div>
+                <div class="pomodoro-header" id="pomodoro-status">POMODORO</div>
                 <div class="pomodoro-task" id="pomodoro-task" style="display:none">
                     <span id="pomodoro-task-text"></span>
-                    <button class="pomodoro-task-clear" onclick="clearPomodoroTask()" aria-label="Detach task from timer" title="Detach task">✕</button>
+                    <button class="pomodoro-task-clear" onclick="clearPomodoroTask()" aria-label="Detach task from timer" title="Detach task"><span data-icon="close" data-icon-size="12"></span></button>
                 </div>
                 <div class="pomodoro-display" id="pomodoro-timer">25:00</div>
                 <div class="pomodoro-progress">
@@ -1771,7 +1796,7 @@
                 </div>
                 <div class="pomodoro-stats">
                     <span id="status-pomodoro" style="font-size: 10px; opacity: 0.7;">Idle</span><br>
-                    Today: <span class="pomodoro-count" id="pomodoro-today">0</span> 🍅
+                    Today: <span class="pomodoro-count" id="pomodoro-today">0</span>
                 </div>
                 <!-- CUSTOM DURATIONS -->
                 <div class="pomodoro-settings" id="pomodoro-settings" style="display:none">
@@ -1787,7 +1812,7 @@
                     </div>
                     <button class="pomodoro-btn" style="width:100%" onclick="applyPomodoroSettings()">Apply</button>
                 </div>
-                <button class="pomodoro-settings-btn" onclick="togglePomodoroSettings()" aria-label="Pomodoro duration settings" title="Customize durations">⚙️</button>
+                <button class="pomodoro-settings-btn" onclick="togglePomodoroSettings()" aria-label="Pomodoro duration settings" title="Customize durations"><span data-icon="settings" data-icon-size="13"></span></button>
             </div>
         </div>
     </div>
@@ -1797,28 +1822,28 @@
         <!-- HEADER -->
         <div class="header">
             <div class="header-left">
-                <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Open navigation menu" aria-expanded="false">☰</button>
+                <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Open navigation menu" aria-expanded="false"><span data-icon="compact" data-icon-size="18"></span></button>
                 <h1 id="view-title">All Tasks</h1>
                 <div class="header-subtitle" id="view-subtitle"></div>
             </div>
             <!-- SEARCH BAR -->
             <div class="header-search" id="header-search">
                 <input type="text" id="search-input" class="search-input"
-                       placeholder="🔍 Search tasks…"
+                       placeholder="Search tasks…"
                        oninput="handleSearch(this.value)"
                        aria-label="Search tasks">
                 <button class="search-clear-btn" id="search-clear-btn"
                         onclick="clearSearch()" style="display:none"
-                        aria-label="Clear search">✕</button>
+                        aria-label="Clear search"><span data-icon="close" data-icon-size="12"></span></button>
             </div>
             <!-- CROSS-LIST SEARCH TOGGLE -->
-            <button class="search-all-btn" id="search-all-btn" onclick="toggleSearchAllLists()" title="Search across all lists" aria-label="Toggle cross-list search">🌐 All lists</button>
+            <button class="search-all-btn" id="search-all-btn" onclick="toggleSearchAllLists()" title="Search across all lists" aria-label="Toggle cross-list search"><span data-icon="globe" data-icon-size="13"></span> All lists</button>
             <!-- COMPACT MODE TOGGLE -->
-            <button class="compact-btn" id="compact-btn" onclick="toggleCompactMode()" title="Toggle compact view" aria-label="Toggle compact view">⊟ Compact</button>
+            <button class="compact-btn" id="compact-btn" onclick="toggleCompactMode()" title="Toggle compact view" aria-label="Toggle compact view"><span data-icon="compact" data-icon-size="13"></span> Compact</button>
             <!-- FOCUS MODE TOGGLE -->
-            <button class="focus-mode-btn" id="focus-mode-btn" onclick="toggleFocusMode()" title="Focus mode (F)" aria-label="Toggle focus mode">⊙ Focus</button>
+            <button class="focus-mode-btn" id="focus-mode-btn" onclick="toggleFocusMode()" title="Focus mode (F)" aria-label="Toggle focus mode"><span data-icon="focus" data-icon-size="13"></span> Focus</button>
             <!-- PRINT -->
-            <button class="focus-mode-btn print-btn" id="print-btn" onclick="window.print()" title="Print this list" aria-label="Print this list">🖨️ Print</button>
+            <button class="focus-mode-btn print-btn" id="print-btn" onclick="window.print()" title="Print this list" aria-label="Print this list"><span data-icon="printer" data-icon-size="13"></span> Print</button>
             <!-- RADIO WIDGET -->
             <div class="radio-widget" id="radio-widget">
                 <div class="radio-bars" id="radio-bars">
@@ -1828,7 +1853,7 @@
                     <div class="radio-bar"></div>
                 </div>
                 <div class="radio-info">
-                    <div class="radio-station-name">📻 Rádio Comercial</div>
+                    <div class="radio-station-name"><span data-icon="radio" data-icon-size="12"></span> Rádio Comercial</div>
                     <div class="radio-now-playing" id="radio-now-playing">Click to listen</div>
                 </div>
                 <button class="radio-play-btn" id="radio-play-btn" onclick="toggleRadio()" title="Play / Pause" aria-label="Play / Pause radio">▶</button>
@@ -1852,7 +1877,7 @@
                 <div class="add-task">
                     <input type="text" id="task-input" placeholder="What do you need to do?  (#tag  !tomorrow  *  ^)" onkeydown="handleKeyPress(event)" aria-describedby="quick-add-hint">
                     <button onclick="addTask()">Add</button>
-                    <button class="template-picker-btn" onclick="openTemplates()" title="Use a template" aria-label="Task templates">📋</button>
+                    <button class="template-picker-btn" onclick="openTemplates()" title="Use a template" aria-label="Task templates"><span data-icon="template" data-icon-size="15"></span></button>
                 </div>
                 <div class="quick-add-hint" id="quick-add-hint">
                     <code>#tag</code> tag · <code>!tomorrow</code> due date · <code>*</code> priority · <code>^</code> pin
@@ -1936,9 +1961,9 @@
                 <div class="data-section">
                     <h2>Data Management</h2>
                     <div class="data-actions">
-                        <button class="data-btn" onclick="exportData()">⬇️ Export JSON</button>
+                        <button class="data-btn" onclick="exportData()"><span data-icon="download" data-icon-size="15"></span> Export JSON</button>
                         <label class="data-btn" style="cursor:pointer">
-                            ⬆️ Import JSON
+                            <span data-icon="upload" data-icon-size="15"></span> Import JSON
                             <input type="file" id="import-file" accept=".json" onchange="importData(this)" style="display:none" aria-label="Import JSON file">
                         </label>
                     </div>
@@ -1947,11 +1972,11 @@
                     <div class="data-status" id="storage-status"></div>
                 </div>
                 <div class="pomo-chart">
-                    <div class="pomo-chart-title">🍅 Pomodoros — Last 7 Days</div>
+                    <div class="pomo-chart-title"><span data-icon="timer" data-icon-size="13"></span> Pomodoros — Last 7 Days</div>
                     <div class="pomo-bars" id="pomo-bars"></div>
                 </div>
                 <div class="pomo-chart">
-                    <div class="pomo-chart-title">✅ Tasks Completed — Last 7 Days</div>
+                    <div class="pomo-chart-title"><span data-icon="checkCircle" data-icon-size="13"></span> Tasks Completed — Last 7 Days</div>
                     <div class="pomo-bars" id="done-bars"></div>
                 </div>
             </div>
@@ -2000,7 +2025,7 @@
 <!-- SHORTCUTS MODAL -->
 <div class="modal-overlay" id="shortcuts-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
     <div class="modal shortcuts-modal">
-        <div class="shortcuts-title" id="shortcuts-title">⌨️ Keyboard Shortcuts</div>
+        <div class="shortcuts-title" id="shortcuts-title"><span data-icon="keyboard" data-icon-size="16"></span> Keyboard Shortcuts</div>
         <div class="shortcuts-grid">
             <div class="shortcut-row"><kbd>Ctrl+N</kbd><span>New task</span></div>
             <div class="shortcut-row"><kbd>Ctrl+K</kbd><span>Focus search</span></div>
@@ -2011,13 +2036,13 @@
             <div class="shortcut-row"><kbd>?</kbd><span>This cheatsheet</span></div>
             <div class="shortcut-row"><kbd>F</kbd><span>Toggle focus mode</span></div>
         </div>
-        <div class="shortcuts-title" style="margin-top:20px">⚡ My Day</div>
+        <div class="shortcuts-title" style="margin-top:20px"><span data-icon="bolt" data-icon-size="14"></span> My Day</div>
         <div class="shortcuts-grid">
-            <div class="shortcut-row"><kbd>⚡</kbd><span>Add or remove a task from My Day</span></div>
-            <div class="shortcut-row"><kbd>💡</kbd><span>Suggestions pull in overdue, due-soon and priority tasks</span></div>
+            <div class="shortcut-row"><kbd>Bolt</kbd><span>Add or remove a task from My Day</span></div>
+            <div class="shortcut-row"><kbd>Suggestions</kbd><span>Pulls in overdue, due-soon and priority tasks</span></div>
             <div class="shortcut-row"><kbd>00:00</kbd><span>My Day clears itself every day — pick again each morning</span></div>
         </div>
-        <div class="shortcuts-title" style="margin-top:20px">⚡ Quick-add Syntax</div>
+        <div class="shortcuts-title" style="margin-top:20px"><span data-icon="command" data-icon-size="14"></span> Quick-add Syntax</div>
         <div class="shortcuts-grid">
             <div class="shortcut-row"><kbd>#tag</kbd><span>Add a tag (up to 5)</span></div>
             <div class="shortcut-row"><kbd>!tomorrow</kbd><span>Due date — also <kbd>!today</kbd>, <kbd>!+3d</kbd>, <kbd>!2026-01-31</kbd></span></div>
@@ -2034,8 +2059,8 @@
 <div class="templates-overlay" id="templates-overlay" onclick="if(event.target===this)closeTemplates()" role="dialog" aria-modal="true" aria-label="Task templates">
     <div class="templates-panel">
         <div class="templates-title">
-            📋 Templates
-            <button class="templates-close" onclick="closeTemplates()" aria-label="Close templates">✕</button>
+            <span data-icon="template" data-icon-size="16"></span> Templates
+            <button class="templates-close" onclick="closeTemplates()" aria-label="Close templates"><span data-icon="close" data-icon-size="13"></span></button>
         </div>
         <div class="templates-list" id="templates-list"></div>
     </div>
@@ -2070,7 +2095,7 @@
     <input type="text" class="date-popover-input" id="date-popover-input" placeholder="Enter date…"
         onkeydown="if(event.key==='Enter'){event.preventDefault();saveDatePopover();}else if(event.key==='Escape'){event.stopPropagation();closeDatePopover();}">
     <label class="date-popover-hint date-popover-time-row" for="date-popover-time">
-        ⏰ Remind at
+        <span data-icon="clock" data-icon-size="12"></span> Remind at
         <input type="time" class="date-popover-input date-popover-time" id="date-popover-time"
             onkeydown="if(event.key==='Enter'){event.preventDefault();saveDatePopover();}else if(event.key==='Escape'){event.stopPropagation();closeDatePopover();}">
     </label>
@@ -2082,7 +2107,7 @@
 </div>
 
 <!-- FOCUS MODE EXIT PILL -->
-<div class="focus-exit-pill" id="focus-exit-pill" onclick="toggleFocusMode()" title="Exit focus mode (F)">✕ Exit Focus</div>
+<div class="focus-exit-pill" id="focus-exit-pill" onclick="toggleFocusMode()" title="Exit focus mode (F)"><span data-icon="close" data-icon-size="13"></span> Exit Focus</div>
 
 <script src="lib.js"></script>
 
@@ -2151,11 +2176,11 @@
         
         if (body.classList.contains('light-mode')) {
             body.classList.remove('light-mode');
-            themeIcon.textContent = '🌙';
+            themeIcon.innerHTML = icon('moon', 17);
             localStorage.setItem('theme', 'dark');
         } else {
             body.classList.add('light-mode');
-            themeIcon.textContent = '☀️';
+            themeIcon.innerHTML = icon('sun', 17);
             localStorage.setItem('theme', 'light');
         }
     }
@@ -2167,14 +2192,23 @@
         const preferLight = !savedTheme && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
         if (savedTheme === 'light' || preferLight) {
             document.body.classList.add('light-mode');
-            if (themeIcon) themeIcon.textContent = '☀️';
+            if (themeIcon) themeIcon.innerHTML = icon('sun', 17);
         } else {
-            if (themeIcon) themeIcon.textContent = '🌙';
+            if (themeIcon) themeIcon.innerHTML = icon('moon', 17);
         }
+    }
+
+    // Fills every static [data-icon] slot in the markup. JS-rendered markup
+    // calls icon() inline instead, so this only runs once at startup.
+    function paintIcons(root) {
+        (root || document).querySelectorAll('[data-icon]').forEach(function(el) {
+            el.innerHTML = icon(el.dataset.icon, parseInt(el.dataset.iconSize, 10) || 16);
+        });
     }
 
     // INITIALIZE
     function init() {
+        paintIcons();
         loadTheme();
         updateDate();
         pruneTrash();
@@ -2550,8 +2584,8 @@
                     <span>${safeListName}</span>
                     <span class="list-count">${incompleteTasks}</span>
                     <div class="list-actions">
-                        <button class="list-action-btn" onclick="event.stopPropagation(); renameList(${list.id})" title="Rename" aria-label="Rename ${safeListName}">✏️</button>
-                        <button class="list-action-btn delete" onclick="event.stopPropagation(); deleteList(${list.id})" title="Delete" aria-label="Delete ${safeListName}">🗑️</button>
+                        <button class="list-action-btn" onclick="event.stopPropagation(); renameList(${list.id})" title="Rename" aria-label="Rename ${safeListName}">${icon('edit', 12)}</button>
+                        <button class="list-action-btn delete" onclick="event.stopPropagation(); deleteList(${list.id})" title="Delete" aria-label="Delete ${safeListName}">${icon('trash', 12)}</button>
                     </div>
                     ${progressBar}
                 </div>
@@ -2636,7 +2670,7 @@
         if (!clearContainer) return;
         const count = list ? list.tasks.filter(t => t.completed).length : 0;
         clearContainer.innerHTML = count > 0
-            ? `<button class="clear-completed-btn" onclick="clearCompleted()">🗑️ Clear ${count} completed task${count !== 1 ? 's' : ''}</button>`
+            ? `<button class="clear-completed-btn" onclick="clearCompleted()">${icon('trash', 13)} Clear ${count} completed task${count !== 1 ? 's' : ''}</button>`
             : '';
     }
 
@@ -2716,10 +2750,10 @@
         if (picks.length === 0) return '';
         return `
             <div class="myday-suggestions">
-                <div class="myday-sugg-title">💡 Suggestions</div>
+                <div class="myday-sugg-title">${icon('bulb', 13)} Suggestions</div>
                 ${picks.map(task => {
-                    const due = task.dueDate ? `<span class="task-due-date ${isDueOverdue(task) ? 'overdue' : ''}">📅 ${formatDueDate(task.dueDate)}</span>` : '';
-                    const star = task.priority ? `<span class="task-badge" aria-label="Priority">⭐</span>` : '';
+                    const due = task.dueDate ? `<span class="task-due-date ${isDueOverdue(task) ? 'overdue' : ''}">${icon('calendarSm', 12)} ${formatDueDate(task.dueDate)}</span>` : '';
+                    const star = task.priority ? `<span class="task-badge" aria-label="Priority">${icon('star', 12)}</span>` : '';
                     return `
                         <div class="myday-sugg-item">
                             <button class="myday-sugg-add" onclick="toggleToday(${task.id})" title="Add to My Day" aria-label="Add ${escapeHtml(task.text)} to My Day">+</button>
@@ -2793,21 +2827,21 @@
                 ${allTagsUsed.map(tagName => {
                     const def = tagDefs.find(d => d.name === tagName);
                     const color = def ? def.color : '#888';
-                    return `<button class="tag-filter-pill ${tagFilter === tagName ? 'active' : ''}" style="background:${color}" data-tag="${escapeHtml(tagName)}" onclick="setTagFilter(this.dataset.tag)" aria-label="Filter by tag ${escapeHtml(tagName)}">${escapeHtml(tagName)}</button>`;
+                    return `<button class="tag-filter-pill ${tagFilter === tagName ? 'active' : ''}" style="color:${color};border-color:${color}" data-tag="${escapeHtml(tagName)}" onclick="setTagFilter(this.dataset.tag)" aria-label="Filter by tag ${escapeHtml(tagName)}">${escapeHtml(tagName)}</button>`;
                 }).join('')}
-                ${tagFilter ? `<button class="tag-filter-clear" onclick="setTagFilter(null)">✕ Clear</button>` : ''}
+                ${tagFilter ? `<button class="tag-filter-clear" onclick="setTagFilter(null)">${icon('close', 11)} Clear</button>` : ''}
             </div>` : '';
 
         // Build select mode toolbar
         const bulkToolbar = selectionMode ? `
             <div class="bulk-toolbar">
                 <span class="bulk-count">${selectedTaskIds.size} selected</span>
-                <button class="bulk-btn" onclick="bulkComplete()" aria-label="Complete selected">✓ Complete</button>
-                <button class="bulk-btn danger" onclick="bulkDelete()" aria-label="Delete selected">🗑️ Delete</button>
+                <button class="bulk-btn" onclick="bulkComplete()" aria-label="Complete selected">${icon('check', 13)} Complete</button>
+                <button class="bulk-btn danger" onclick="bulkDelete()" aria-label="Delete selected">${icon('trash', 13)} Delete</button>
                 <button class="bulk-btn" onclick="toggleSelectionMode()">Cancel</button>
             </div>` : '';
 
-        const selectModeBtn = view === 'all' && !isAllListsMode ? `<button class="select-mode-btn ${selectionMode ? 'active' : ''}" onclick="toggleSelectionMode()" aria-label="Toggle selection mode">☑ Select</button>` : '';
+        const selectModeBtn = view === 'all' && !isAllListsMode ? `<button class="select-mode-btn ${selectionMode ? 'active' : ''}" onclick="toggleSelectionMode()" aria-label="Toggle selection mode">${icon('subtasks', 13)} Select</button>` : '';
 
         // Sync sort select
         setTimeout(() => {
@@ -2819,12 +2853,12 @@
         if (tasks.length === 0) {
             const messages = {
                 'all': 'No tasks yet.<br>Add your first task above!',
-                'today': 'My Day is empty.<br>Pick what you are actually doing today with ⚡',
-                'priority': 'No priority tasks.<br>Use the ⭐ button to mark priorities!'
+                'today': 'My Day is empty.<br>Pick what you are actually doing today.',
+                'priority': 'No priority tasks.<br>Star a task to mark it as a priority.'
             };
             container.innerHTML = tagFilterBar + bulkToolbar + selectModeBtn + `
                 <div class="empty-state">
-                    <div class="empty-icon">${view === 'today' ? '⚡' : view === 'priority' ? '⭐' : '📋'}</div>
+                    <div class="empty-icon">${icon(view === 'today' ? 'bolt' : view === 'priority' ? 'star' : 'list', 44)}</div>
                     <p>${messages[view]}</p>
                 </div>
             ` + suggestionsHtml;
@@ -2838,25 +2872,25 @@
             const taskClass = `task ${task.completed ? 'completed' : ''} ${task.priority ? 'priority' : ''} ${task.today ? 'today' : ''} ${task.pinned ? 'pinned' : ''} ${isDueOverdue(task) ? 'has-overdue-date' : ''}`.replace(/\s+/g, ' ').trim();
             const divider = (!task.completed && pinnedCount > 0 && idx === pinnedCount) ? `<div class="pinned-divider">Other tasks</div>` : '';
             const checkboxLabel = task.completed ? 'Mark as incomplete' : 'Mark as complete';
-            const dueDateHtml = task.dueDate ? `<span class="task-due-date ${isDueOverdue(task) ? 'overdue' : isDueToday(task) ? 'due-today' : ''}" onclick="event.stopPropagation();openDatePopover(${task.id},this)" title="Click to change date">📅 ${formatDueDate(task.dueDate)}</span>` : '';
-            const recurrenceHtml = task.recurrence ? `<span class="task-due-date">🔁 ${task.recurrence}</span>` : '';
-            const remindHtml = task.remindTime ? `<span class="task-due-date" onclick="event.stopPropagation();openDatePopover(${task.id},this)" title="Reminder — fires only while TaskFlow is open">⏰ ${task.remindTime}</span>` : '';
-            const streakHtml = (task.recurrence && task.streak > 1) ? `<span class="streak-badge ${task.streak >= 7 ? 'hot' : ''}">🔥 ${task.streak}</span>` : '';
-            const pomoHtml = task.pomodoros ? `<span class="pomo-count-badge" title="${task.pomodoros} pomodoro${task.pomodoros !== 1 ? 's' : ''} spent">🍅 ${task.pomodoros}</span>` : '';
+            const dueDateHtml = task.dueDate ? `<span class="task-due-date ${isDueOverdue(task) ? 'overdue' : isDueToday(task) ? 'due-today' : ''}" onclick="event.stopPropagation();openDatePopover(${task.id},this)" title="Click to change date">${icon('calendarSm', 12)} ${formatDueDate(task.dueDate)}</span>` : '';
+            const recurrenceHtml = task.recurrence ? `<span class="task-due-date">${icon('repeat', 12)} ${task.recurrence}</span>` : '';
+            const remindHtml = task.remindTime ? `<span class="task-due-date" onclick="event.stopPropagation();openDatePopover(${task.id},this)" title="Reminder — fires only while TaskFlow is open">${icon('clock', 12)} ${task.remindTime}</span>` : '';
+            const streakHtml = (task.recurrence && task.streak > 1) ? `<span class="streak-badge ${task.streak >= 7 ? 'hot' : ''}">${icon('flame', 11)} ${task.streak}</span>` : '';
+            const pomoHtml = task.pomodoros ? `<span class="pomo-count-badge" title="${task.pomodoros} pomodoro${task.pomodoros !== 1 ? 's' : ''} spent">${icon('timer', 11)} ${task.pomodoros}</span>` : '';
             const subtaskCount = (task.subtasks || []).length;
             const subtaskDone  = (task.subtasks || []).filter(s => s.completed).length;
-            const subtaskHtml  = subtaskCount ? `<span class="subtask-progress">☑ ${subtaskDone}/${subtaskCount}</span>` : '';
+            const subtaskHtml  = subtaskCount ? `<span class="subtask-progress">${icon('subtasks', 11)} ${subtaskDone}/${subtaskCount}</span>` : '';
             const tagPillsHtml = (task.tags || []).map(tagName => {
                 const def = tagDefs.find(d => d.name === tagName);
                 const color = def ? def.color : '#888';
-                return `<span class="tag-pill" style="background:${color}">${escapeHtml(tagName)}</span>`;
+                return `<span class="tag-pill" style="color:${color}">${escapeHtml(tagName)}</span>`;
             }).join('');
             const listBadgeHtml = isAllListsMode && task._listName ? `<span class="task-list-badge">${escapeHtml(task._listIcon || '')} ${escapeHtml(task._listName)}</span>` : '';
             const metaRow = (listBadgeHtml || dueDateHtml || remindHtml || recurrenceHtml || streakHtml || pomoHtml || subtaskHtml || tagPillsHtml) ?
                 `<div class="task-meta">${listBadgeHtml}${dueDateHtml}${remindHtml}${recurrenceHtml}${streakHtml}${pomoHtml}${subtaskHtml}${tagPillsHtml ? `<span class="task-tags">${tagPillsHtml}</span>` : ''}</div>` : '';
 
             const dragAttrs = isDraggable ? `draggable="true" ondragstart="dragStart(event,${task.id})" ondragover="dragOver(event,${task.id})" ondrop="dragDrop(event,${task.id})" ondragend="dragEnd(event)" ondragleave="dragLeave(event)"` : '';
-            const dragHandle = isDraggable ? `<span class="drag-handle" aria-hidden="true">⠿</span>` : '';
+            const dragHandle = isDraggable ? `<span class="drag-handle" aria-hidden="true">${icon('grip', 14)}</span>` : '';
 
             const isSelected = selectedTaskIds.has(task.id);
             const selectCheckbox = selectionMode ? `<div class="task-select-checkbox ${isSelected ? 'selected' : ''}" onclick="toggleTaskSelection(${task.id})" role="checkbox" aria-checked="${isSelected}" aria-label="Select task"></div>` : '';
@@ -2875,8 +2909,8 @@
                                 onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleTask(${task.id});}"></div>
                             <input type="text" class="edit-task-input" id="edit-input-${task.id}" value="${escapeHtml(task.text)}" onkeydown="handleEditKeyPress(event, ${task.id})" autofocus aria-label="Edit task text">
                             <div class="task-actions" style="opacity: 1;">
-                                <button class="task-btn edit-btn" onclick="saveEdit(${task.id})" title="Save" aria-label="Save edit">✓</button>
-                                <button class="task-btn delete-btn" onclick="cancelEdit()" title="Cancel" aria-label="Cancel edit">✕</button>
+                                <button class="task-btn edit-btn" onclick="saveEdit(${task.id})" title="Save" aria-label="Save edit">${icon('check')}</button>
+                                <button class="task-btn delete-btn" onclick="cancelEdit()" title="Cancel" aria-label="Cancel edit">${icon('close')}</button>
                             </div>
                         </div>
                     </div>
@@ -2891,7 +2925,7 @@
                         <li class="subtask-item">
                             <div class="subtask-checkbox ${s.completed ? 'done' : ''}" onclick="toggleSubtask(${task.id},${s.id})" role="checkbox" aria-checked="${s.completed}" title="Toggle subtask"></div>
                             <span class="subtask-text ${s.completed ? 'done' : ''}">${escapeHtml(s.text)}</span>
-                            <button class="subtask-delete-btn" onclick="deleteSubtask(${task.id},${s.id})" aria-label="Delete subtask">✕</button>
+                            <button class="subtask-delete-btn" onclick="deleteSubtask(${task.id},${s.id})" aria-label="Delete subtask">${icon('close', 12)}</button>
                         </li>`).join('')}
                     </ul>
                     <div class="subtask-add-row">
@@ -2930,23 +2964,23 @@
                             ${metaRow}
                         </div>
                         <div class="task-badges">
-                            ${task.priority ? '<span class="task-badge" aria-label="Priority">⭐</span>' : ''}
-                            ${task.today ? '<span class="task-badge" aria-label="In My Day">⚡</span>' : ''}
+                            ${task.priority ? '<span class="task-badge" aria-label="Priority">' + icon('star', 13) + '</span>' : ''}
+                            ${task.today ? '<span class="task-badge" aria-label="In My Day">' + icon('bolt', 13) + '</span>' : ''}
                         </div>
                         <div class="task-actions">
-                            <button class="task-btn pin-btn ${task.pinned ? 'active' : ''}" onclick="togglePin(${task.id})" title="${task.pinned ? 'Unpin task' : 'Pin task'}" aria-label="${task.pinned ? 'Unpin task' : 'Pin to top'}">📌</button>
-                            <button class="task-btn priority-btn ${task.priority ? 'active' : ''}" onclick="togglePriority(${task.id})" title="Priority" aria-label="${task.priority ? 'Remove priority' : 'Set as priority'}">⭐</button>
-                            <button class="task-btn today-btn ${task.today ? 'active' : ''}" onclick="toggleToday(${task.id})" title="My Day" aria-label="${task.today ? 'Remove from My Day' : 'Add to My Day'}">⚡</button>
-                            <button class="task-btn subtasks-btn ${subtaskCount ? 'active' : ''}" onclick="toggleSubtasks(${task.id})" title="Subtasks" aria-label="Subtasks">☑️</button>
-                            <button class="task-btn notes-btn ${task.notes ? 'active' : ''}" onclick="toggleNotes(${task.id})" title="Notes" aria-label="${task.notes ? 'Edit notes' : 'Add notes'}">📝</button>
-                            <button class="task-btn tag-btn ${(task.tags && task.tags.length) ? 'active' : ''}" onclick="openTagPicker(${task.id})" title="Tags" aria-label="Tags">🏷️</button>
-                            <button class="task-btn recur-btn ${task.recurrence ? 'active' : ''}" onclick="cycleRecurrence(${task.id})" title="${task.recurrence ? 'Recurrence: ' + task.recurrence + ' (click to change)' : 'Set recurrence'}" aria-label="Set recurrence">🔁</button>
-                            <button class="task-btn date-btn ${task.dueDate ? 'active' : ''}" onclick="openDatePicker(${task.id})" title="Set due date" aria-label="${task.dueDate ? 'Change due date' : 'Set due date'}">📅</button>
-                            <button class="task-btn pomo-btn ${pomodoroTaskId === task.id ? 'active' : ''}" onclick="startPomodoroFor(${task.id})" title="${pomodoroTaskId === task.id && pomodoroIsRunning ? 'Pause timer' : 'Start a pomodoro on this task'}" aria-label="Start pomodoro for this task">${pomodoroTaskId === task.id && pomodoroIsRunning ? '⏸' : '🍅'}</button>
-                            <button class="task-btn save-template-btn" onclick="saveAsTemplate(${task.id})" title="Save as template" aria-label="Save as template">📋</button>
-                            <button class="task-btn edit-btn" onclick="editTask(${task.id})" title="Edit" aria-label="Edit task">✏️</button>
-                            <button class="task-btn" onclick="moveTask(${task.id})" title="Move to list" aria-label="Move to another list">➡️</button>
-                            <button class="task-btn delete-btn" onclick="deleteTask(${task.id})" title="Delete" aria-label="Delete task">🗑️</button>
+                            <button class="task-btn pin-btn ${task.pinned ? 'active' : ''}" onclick="togglePin(${task.id})" title="${task.pinned ? 'Unpin task' : 'Pin task'}" aria-label="${task.pinned ? 'Unpin task' : 'Pin to top'}">${icon('pin')}</button>
+                            <button class="task-btn priority-btn ${task.priority ? 'active' : ''}" onclick="togglePriority(${task.id})" title="Priority" aria-label="${task.priority ? 'Remove priority' : 'Set as priority'}">${icon('star')}</button>
+                            <button class="task-btn today-btn ${task.today ? 'active' : ''}" onclick="toggleToday(${task.id})" title="My Day" aria-label="${task.today ? 'Remove from My Day' : 'Add to My Day'}">${icon('bolt')}</button>
+                            <button class="task-btn subtasks-btn ${subtaskCount ? 'active' : ''}" onclick="toggleSubtasks(${task.id})" title="Subtasks" aria-label="Subtasks">${icon('subtasks')}</button>
+                            <button class="task-btn notes-btn ${task.notes ? 'active' : ''}" onclick="toggleNotes(${task.id})" title="Notes" aria-label="${task.notes ? 'Edit notes' : 'Add notes'}">${icon('note')}</button>
+                            <button class="task-btn tag-btn ${(task.tags && task.tags.length) ? 'active' : ''}" onclick="openTagPicker(${task.id})" title="Tags" aria-label="Tags">${icon('tag')}</button>
+                            <button class="task-btn recur-btn ${task.recurrence ? 'active' : ''}" onclick="cycleRecurrence(${task.id})" title="${task.recurrence ? 'Recurrence: ' + task.recurrence + ' (click to change)' : 'Set recurrence'}" aria-label="Set recurrence">${icon('repeat')}</button>
+                            <button class="task-btn date-btn ${task.dueDate ? 'active' : ''}" onclick="openDatePicker(${task.id})" title="Set due date" aria-label="${task.dueDate ? 'Change due date' : 'Set due date'}">${icon('calendar')}</button>
+                            <button class="task-btn pomo-btn ${pomodoroTaskId === task.id ? 'active' : ''}" onclick="startPomodoroFor(${task.id})" title="${pomodoroTaskId === task.id && pomodoroIsRunning ? 'Pause timer' : 'Start a pomodoro on this task'}" aria-label="Start pomodoro for this task">${icon(pomodoroTaskId === task.id && pomodoroIsRunning ? 'pause' : 'timer')}</button>
+                            <button class="task-btn save-template-btn" onclick="saveAsTemplate(${task.id})" title="Save as template" aria-label="Save as template">${icon('template')}</button>
+                            <button class="task-btn edit-btn" onclick="editTask(${task.id})" title="Edit" aria-label="Edit task">${icon('edit')}</button>
+                            <button class="task-btn" onclick="moveTask(${task.id})" title="Move to list" aria-label="Move to another list">${icon('move')}</button>
+                            <button class="task-btn delete-btn" onclick="deleteTask(${task.id})" title="Delete" aria-label="Delete task">${icon('trash')}</button>
                         </div>
                     </div>
                     ${subtasksSection}
@@ -2985,23 +3019,23 @@
         tasks.sort((a, b) => (b.completedAt || b.createdAt || '').localeCompare(a.completedAt || a.createdAt || ''));
 
         if (tasks.length === 0) {
-            container.innerHTML = `<div class="empty-state"><div class="empty-icon">✅</div><p>${searchQuery ? 'No matching completed tasks.' : 'No completed tasks yet.<br>Complete a task to see it here!'}</p></div>`;
+            container.innerHTML = `<div class="empty-state"><div class="empty-icon">${icon('checkCircle', 44)}</div><p>${searchQuery ? 'No matching completed tasks.' : 'No completed tasks yet.<br>Complete a task to see it here!'}</p></div>`;
             return;
         }
 
         container.innerHTML = tasks.map(task => {
             const listBadge = `<span class="task-list-badge">${escapeHtml(task._listIcon || '')} ${escapeHtml(task._listName)}</span>`;
-            const dueDateHtml = task.dueDate ? `<span class="task-due-date">📅 ${formatDueDate(task.dueDate)}</span>` : '';
+            const dueDateHtml = task.dueDate ? `<span class="task-due-date">${icon('calendarSm', 12)} ${formatDueDate(task.dueDate)}</span>` : '';
             const subtaskCount = (task.subtasks || []).length;
             const subtaskDone  = (task.subtasks || []).filter(s => s.completed).length;
-            const subtaskHtml  = subtaskCount ? `<span class="subtask-progress">☑ ${subtaskDone}/${subtaskCount}</span>` : '';
+            const subtaskHtml  = subtaskCount ? `<span class="subtask-progress">${icon('subtasks', 11)} ${subtaskDone}/${subtaskCount}</span>` : '';
             const tagPillsHtml = (task.tags || []).map(tagName => {
                 const def = tagDefs.find(d => d.name === tagName);
                 const color = def ? def.color : '#888';
-                return `<span class="tag-pill" style="background:${color}">${escapeHtml(tagName)}</span>`;
+                return `<span class="tag-pill" style="color:${color}">${escapeHtml(tagName)}</span>`;
             }).join('');
-            const doneAtHtml = task.completedAt ? `<span class="task-due-date">✅ ${formatDueDate(task.completedAt.split('T')[0])}</span>` : '';
-            const pomoHtml = task.pomodoros ? `<span class="pomo-count-badge">🍅 ${task.pomodoros}</span>` : '';
+            const doneAtHtml = task.completedAt ? `<span class="task-due-date">${icon('checkCircle', 12)} ${formatDueDate(task.completedAt.split('T')[0])}</span>` : '';
+            const pomoHtml = task.pomodoros ? `<span class="pomo-count-badge">${icon('timer', 11)} ${task.pomodoros}</span>` : '';
             const metaRow = `<div class="task-meta">${listBadge}${doneAtHtml}${dueDateHtml}${pomoHtml}${subtaskHtml}${tagPillsHtml ? `<span class="task-tags">${tagPillsHtml}</span>` : ''}</div>`;
             return `
                 <div class="task-wrapper" tabindex="0" data-task-id="${task.id}">
@@ -3017,8 +3051,8 @@
                             ${metaRow}
                         </div>
                         <div class="task-actions" style="opacity:1">
-                            <button class="task-btn edit-btn" onclick="toggleTask(${task.id})" title="Restore task" aria-label="Restore task">↩️</button>
-                            <button class="task-btn delete-btn" onclick="deleteTask(${task.id})" title="Delete permanently" aria-label="Delete permanently">🗑️</button>
+                            <button class="task-btn edit-btn" onclick="toggleTask(${task.id})" title="Restore task" aria-label="Restore task">${icon('undo', 14)}</button>
+                            <button class="task-btn delete-btn" onclick="deleteTask(${task.id})" title="Delete permanently" aria-label="Delete permanently">${icon('trash', 14)}</button>
                         </div>
                     </div>
                 </div>
@@ -3039,14 +3073,14 @@
             const msg = searchQuery
                 ? 'No matching deleted tasks.'
                 : 'Trash is empty.<br>Deleted tasks are kept here for ' + TRASH_MAX_DAYS + ' days.';
-            container.innerHTML = '<div class="empty-state"><div class="empty-icon">🗑️</div><p>' + msg + '</p></div>';
+            container.innerHTML = '<div class="empty-state"><div class="empty-icon">' + icon('trash', 44) + '</div><p>' + msg + '</p></div>';
             return;
         }
 
         const toolbar = `
             <div class="bulk-toolbar">
                 <span class="bulk-count">${entries.length} in trash · kept ${TRASH_MAX_DAYS} days</span>
-                <button class="bulk-btn danger" onclick="emptyTrash()" aria-label="Empty trash">🗑️ Empty Trash</button>
+                <button class="bulk-btn danger" onclick="emptyTrash()" aria-label="Empty trash">${icon('trash', 13)} Empty Trash</button>
             </div>`;
 
         container.innerHTML = toolbar + entries.map(function(entry) {
@@ -3056,18 +3090,18 @@
             const tagPillsHtml = (task.tags || []).map(tagName => {
                 const def = tagDefs.find(d => d.name === tagName);
                 const color = def ? def.color : '#888';
-                return `<span class="tag-pill" style="background:${color}">${escapeHtml(tagName)}</span>`;
+                return `<span class="tag-pill" style="color:${color}">${escapeHtml(tagName)}</span>`;
             }).join('');
             return `
                 <div class="task-wrapper" tabindex="0" data-task-id="${task.id}">
                     <div class="task trashed">
                         <div class="task-content">
                             <div class="task-text">${escapeHtml(task.text)}</div>
-                            <div class="task-meta">${listBadge}<span class="trash-age">🗑️ ${formatDueDate(entry.deletedAt.split('T')[0])} · ${daysLeft}d left</span>${tagPillsHtml ? `<span class="task-tags">${tagPillsHtml}</span>` : ''}</div>
+                            <div class="task-meta">${listBadge}<span class="trash-age">${icon('trash', 11)} ${formatDueDate(entry.deletedAt.split('T')[0])} · ${daysLeft}d left</span>${tagPillsHtml ? `<span class="task-tags">${tagPillsHtml}</span>` : ''}</div>
                         </div>
                         <div class="task-actions" style="opacity:1">
-                            <button class="task-btn edit-btn" onclick="restoreFromTrash(${task.id})" title="Restore task" aria-label="Restore task">↩️</button>
-                            <button class="task-btn delete-btn" onclick="deleteFromTrash(${task.id})" title="Delete permanently" aria-label="Delete permanently">✕</button>
+                            <button class="task-btn edit-btn" onclick="restoreFromTrash(${task.id})" title="Restore task" aria-label="Restore task">${icon('undo', 14)}</button>
+                            <button class="task-btn delete-btn" onclick="deleteFromTrash(${task.id})" title="Delete permanently" aria-label="Delete permanently">${icon('close', 14)}</button>
                         </div>
                     </div>
                 </div>`;
@@ -3095,7 +3129,7 @@
         tasks.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 
         if (tasks.length === 0) {
-            container.innerHTML = `<div class="empty-state"><div class="empty-icon">📅</div><p>No tasks due in the next 7 days.</p></div>`;
+            container.innerHTML = `<div class="empty-state"><div class="empty-icon">${icon('calendar', 44)}</div><p>No tasks due in the next 7 days.</p></div>`;
             return;
         }
 
@@ -3110,7 +3144,7 @@
                 const tagPillsHtml = (task.tags || []).map(tagName => {
                     const def = tagDefs.find(d => d.name === tagName);
                     const color = def ? def.color : '#888';
-                    return `<span class="tag-pill" style="background:${color}">${escapeHtml(tagName)}</span>`;
+                    return `<span class="tag-pill" style="color:${color}">${escapeHtml(tagName)}</span>`;
                 }).join('');
                 const metaRow = `<div class="task-meta">${listBadge}${tagPillsHtml ? `<span class="task-tags">${tagPillsHtml}</span>` : ''}</div>`;
                 const accent = task._listColor ? `border-left: 3px solid ${task._listColor};` : '';
@@ -3140,7 +3174,7 @@
         const overlay = document.getElementById('list-color-overlay');
         picker.innerHTML = LIST_COLORS.map(c =>
             `<div class="list-color-swatch" style="background:${c}" onclick="setListColor('${c}')" title="${c}"></div>`
-        ).join('') + `<div class="list-color-swatch list-color-swatch-none" onclick="setListColor(null)" title="Remove colour">✕</div>`;
+        ).join('') + `<div class="list-color-swatch list-color-swatch-none" onclick="setListColor(null)" title="Remove colour">${icon('close', 12)}</div>`;
         const rect = dotEl.getBoundingClientRect();
         picker.style.top = (rect.bottom + 4) + 'px';
         picker.style.left = rect.left + 'px';
@@ -3528,7 +3562,7 @@
         pomodoroTotalTime = pomodoroWorkMins * 60;
         pomodoroIsBreak = false;
         const statusEl = document.getElementById('pomodoro-status');
-        if (statusEl) statusEl.textContent = '🍅 POMODORO';
+        if (statusEl) statusEl.textContent = 'POMODORO';
         const idleEl = document.getElementById('status-pomodoro');
         if (idleEl) idleEl.textContent = 'Idle';
         updatePomodoroDisplay();
@@ -3578,13 +3612,13 @@
             pomodoroTimeLeft = pomodoroBreakMins * 60;
             pomodoroTotalTime = pomodoroBreakMins * 60;
             const statusEl = document.getElementById('pomodoro-status');
-            if (statusEl) statusEl.textContent = '🍅 BREAK TIME';
+            if (statusEl) statusEl.textContent = 'BREAK TIME';
         } else {
             pomodoroIsBreak = false;
             pomodoroTimeLeft = pomodoroWorkMins * 60;
             pomodoroTotalTime = pomodoroWorkMins * 60;
             const statusEl = document.getElementById('pomodoro-status');
-            if (statusEl) statusEl.textContent = '🍅 POMODORO';
+            if (statusEl) statusEl.textContent = 'POMODORO';
         }
         
         updatePomodoroDisplay();
@@ -3601,7 +3635,7 @@
         const themeIcon = document.getElementById('theme-icon');
         if (savedTheme === 'light') {
             document.body.classList.add('light-mode');
-            if (themeIcon) themeIcon.textContent = '☀️';
+            if (themeIcon) themeIcon.innerHTML = icon('sun', 17);
         }
     })();
 
@@ -3762,9 +3796,9 @@
                     ${tagDefs.map(def => {
                         const isActive = activeTags.includes(def.name);
                         return `<span style="display:inline-flex;align-items:center;gap:2px;">
-                            <span class="tag-pill" style="background:${def.color};opacity:${isActive?1:0.4};cursor:pointer;border:${isActive?'2px solid white':'2px solid transparent'}"
+                            <span class="tag-pill" style="color:${def.color};opacity:${isActive?1:0.45};cursor:pointer;border-width:${isActive?'2px':'1px'}"
                                 onclick="(function(){var t=JSON.parse(document.getElementById('prompt-input').value||'[]');var n=${JSON.stringify(def.name)};var i=t.indexOf(n);if(i>=0)t.splice(i,1);else if(t.length<5)t.push(n);document.getElementById('prompt-input').value=JSON.stringify(t);document.getElementById('tag-picker-div').innerHTML='';if(window._tagRefresh)window._tagRefresh();})()">${escapeHtml(def.name)}</span>
-                            <button type="button" title="Delete tag" onclick="deleteTagDef(${JSON.stringify(def.name)})" style="background:none;border:none;cursor:pointer;color:var(--text-tertiary);font-size:11px;padding:0 2px;line-height:1;" aria-label="Delete tag ${escapeHtml(def.name)}">✕</button>
+                            <button type="button" title="Delete tag" onclick="deleteTagDef(${JSON.stringify(def.name)})" style="background:none;border:none;cursor:pointer;color:var(--text-tertiary);font-size:11px;padding:0 2px;line-height:1;" aria-label="Delete tag ${escapeHtml(def.name)}">${icon('close', 10)}</button>
                         </span>`;
                     }).join('')}
                 </div>
@@ -4220,15 +4254,15 @@
     function renderTemplateList() {
         const container = document.getElementById('templates-list');
         if (templates.length === 0) {
-            container.innerHTML = '<div class="templates-empty">No templates yet.<br>Click 📋 on any task to save it as a template.</div>';
+            container.innerHTML = '<div class="templates-empty">No templates yet.<br>Use Save as template on any task.</div>';
             return;
         }
         container.innerHTML = templates.map(tmpl => {
             const meta = [
-                tmpl.priority ? '⭐' : '',
-                tmpl.recurrence ? '🔁 ' + tmpl.recurrence : '',
-                tmpl.tags && tmpl.tags.length ? '🏷️ ' + tmpl.tags.join(', ') : '',
-                tmpl.subtasks && tmpl.subtasks.length ? '☑ ' + tmpl.subtasks.length + ' subtasks' : ''
+                tmpl.priority ? icon('star', 11) + ' priority' : '',
+                tmpl.recurrence ? icon('repeat', 11) + ' ' + tmpl.recurrence : '',
+                tmpl.tags && tmpl.tags.length ? icon('tag', 11) + ' ' + tmpl.tags.join(', ') : '',
+                tmpl.subtasks && tmpl.subtasks.length ? icon('subtasks', 11) + ' ' + tmpl.subtasks.length + ' subtasks' : ''
             ].filter(Boolean).join(' · ');
             return `
                 <div class="template-card">
@@ -4237,7 +4271,7 @@
                         ${meta ? `<div class="template-card-meta">${escapeHtml(meta)}</div>` : ''}
                     </div>
                     <button class="template-use-btn" onclick="useTemplate(${tmpl.id})">Use</button>
-                    <button class="template-delete-btn" onclick="deleteTemplate(${tmpl.id})" title="Delete template">🗑️</button>
+                    <button class="template-delete-btn" onclick="deleteTemplate(${tmpl.id})" title="Delete template">${icon('trash', 12)}</button>
                 </div>`;
         }).join('');
     }
@@ -4326,8 +4360,8 @@
         if (!navigator.storage || !navigator.storage.persisted) { el.innerHTML = ''; return; }
         navigator.storage.persisted().then(function(persisted) {
             el.innerHTML = persisted
-                ? '<span class="data-ok">🔒 Storage is protected from automatic cleanup.</span>'
-                : '<span class="data-warn">⚠️ This browser may clear your tasks on its own.</span> <button class="data-btn data-btn-inline" onclick="requestPersistence()">Protect storage</button>';
+                ? '<span class="data-ok">' + icon('lock', 12) + ' Storage is protected from automatic cleanup.</span>'
+                : '<span class="data-warn">' + icon('alert', 12) + ' This browser may clear your tasks on its own.</span> <button class="data-btn data-btn-inline" onclick="requestPersistence()">Protect storage</button>';
         }).catch(function() { el.innerHTML = ''; });
     }
 
@@ -4338,11 +4372,11 @@
         const status = backupStatus(localStorage.getItem('lastExportAt'), Date.now(), taskCount);
         if (status.state === 'empty') { el.innerHTML = ''; return; }
         if (status.state === 'never') {
-            el.innerHTML = '<span class="data-warn">⚠️ Never exported — your tasks exist only in this browser.</span>';
+            el.innerHTML = '<span class="data-warn">' + icon('alert', 12) + ' Never exported — your tasks exist only in this browser.</span>';
         } else if (status.state === 'stale') {
-            el.innerHTML = '<span class="data-warn">⚠️ Last export was ' + status.days + ' days ago.</span>';
+            el.innerHTML = '<span class="data-warn">' + icon('alert', 12) + ' Last export was ' + status.days + ' days ago.</span>';
         } else {
-            el.innerHTML = '<span class="data-ok">✅ Last export ' + (status.days === 0 ? 'today' : status.days === 1 ? 'yesterday' : status.days + ' days ago') + '.</span>';
+            el.innerHTML = '<span class="data-ok">' + icon('checkCircle', 12) + ' Last export ' + (status.days === 0 ? 'today' : status.days === 1 ? 'yesterday' : status.days + ' days ago') + '.</span>';
         }
     }
 

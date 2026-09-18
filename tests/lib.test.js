@@ -19,8 +19,11 @@ const {
     nextRecurrence,
     streakContinues,
     RECURRENCES,
+    icon,
+    ICON_PATHS,
     renderMarkdown,
 } = require('../lib.js');
+
 
 
 
@@ -358,5 +361,29 @@ describe('streakContinues', () => {
     test('an unknown cadence never continues a streak', () => {
         expect(streakContinues('hourly', 1)).toBe(false);
         expect(streakContinues(null, 1)).toBe(false);
+    });
+});
+
+describe('icon', () => {
+    test('renders inline SVG at the requested size', () => {
+        const svg = icon('calendar', 12);
+        expect(svg).toContain('<svg');
+        expect(svg).toContain('width="12"');
+        expect(svg).toContain('stroke="currentColor"');
+        expect(svg).toContain('aria-hidden="true"');
+    });
+
+    test('defaults to 16px', () => {
+        expect(icon('star')).toContain('width="16"');
+    });
+
+    test('an unknown name renders nothing rather than a broken glyph', () => {
+        expect(icon('no-such-icon')).toBe('');
+    });
+
+    test('every icon in the set has path data', () => {
+        Object.keys(ICON_PATHS).forEach((name) => {
+            expect(icon(name)).toContain('<svg');
+        });
     });
 });
