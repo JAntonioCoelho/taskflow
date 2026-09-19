@@ -49,15 +49,17 @@ test('the tab strip scrolls so the last tab is reachable', async ({ page }) => {
     await openApp(page);
     const tabs = page.locator('#tabs-container');
     await expect(tabs).toHaveCSS('overflow-x', 'auto');
-    await tabs.evaluate((el) => { el.scrollLeft = el.scrollWidth; });
+    await tabs.evaluate((el) => {
+        el.scrollLeft = el.scrollWidth;
+    });
     await expect(page.locator('.tab-btn').last()).toBeInViewport({ ratio: 1 });
 });
 
 test('the add-task row stays inside its container', async ({ page }) => {
     await openApp(page);
-    const overflow = await page.locator('.add-task').evaluate(
-        (el) => el.scrollWidth - Math.ceil(el.getBoundingClientRect().width)
-    );
+    const overflow = await page
+        .locator('.add-task')
+        .evaluate((el) => el.scrollWidth - Math.ceil(el.getBoundingClientRect().width));
     expect(overflow).toBeLessThanOrEqual(0);
 });
 

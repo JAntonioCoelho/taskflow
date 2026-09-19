@@ -29,9 +29,9 @@ jobs:
     name: 1 · Unit tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '20'
           cache: 'npm'
@@ -43,14 +43,13 @@ jobs:
 
       - name: Formatting
         run: npx prettier --check lib.js tests/ tests-visual/ playwright.config.js
-        continue-on-error: true
 
       - name: Jest
         run: npm test
 
       - name: Upload coverage
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage
           path: coverage/
@@ -67,9 +66,9 @@ jobs:
       image: mcr.microsoft.com/playwright:v1.63.0-noble
       options: --user 1001
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '20'
           cache: 'npm'
@@ -83,7 +82,7 @@ jobs:
 
       - name: Upload report
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: playwright-report
           path: |
@@ -100,9 +99,9 @@ jobs:
       security-events: write
       actions: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '20'
           cache: 'npm'
@@ -116,8 +115,23 @@ jobs:
 
       - name: Dependency advisories (tooling)
         # Jest, Playwright and friends never leave the build machine, so their
-        # advisories are worth seeing but not worth blocking a release on.
-        run: npm audit --audit-level=high || true
+        # advisories are worth counting but not worth blocking a release on.
+        # A count in the summary rather than the full report inline: dumping
+        # advisories nobody can act on into the log trains people to ignore it.
+        run: |
+          npm audit --json > /tmp/audit.json 2>/dev/null || true
+          node -e '
+            const a = require("/tmp/audit.json");
+            const m = (a.metadata && a.metadata.vulnerabilities) || {};
+            const total = (m.critical||0)+(m.high||0)+(m.moderate||0)+(m.low||0);
+            const line = total === 0
+              ? "No advisories in the build tooling."
+              : `${total} advisor${total===1?"y":"ies"} in build tooling `
+                + `(${m.critical||0} critical, ${m.high||0} high, ${m.moderate||0} moderate, ${m.low||0} low). `
+                + "None of it ships — run `npm audit` locally for detail.";
+            console.log(line);
+            require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY, "### Tooling\n\n" + line + "\n");
+          '
 
       - name: Hardcoded secrets
         run: |
@@ -197,7 +211,7 @@ jobs:
       group: pages
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Verify the app is there
         run: |

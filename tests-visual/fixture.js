@@ -21,8 +21,8 @@ const LISTS = [
                 tags: ['work'],
                 subtasks: [
                     { id: 1011, text: 'Reunir os números', completed: true },
-                    { id: 1012, text: 'Rever com a equipa', completed: false }
-                ]
+                    { id: 1012, text: 'Rever com a equipa', completed: false },
+                ],
             }),
             task(102, 'Rever o PR de faturação', {
                 dueDate: TODAY,
@@ -34,24 +34,24 @@ const LISTS = [
                 notes: 'Atenção ao **IVA a 6%** nas linhas isentas.',
                 subtasks: [
                     { id: 1021, text: 'Ler o diff', completed: true },
-                    { id: 1022, text: 'Correr os testes', completed: false }
-                ]
+                    { id: 1022, text: 'Correr os testes', completed: false },
+                ],
             }),
             task(103, 'Tomar o comprimido', {
                 dueDate: TODAY,
                 recurrence: 'daily',
                 streak: 12,
-                today: true
+                today: true,
             }),
             task(104, 'Escrever a introdução da apresentação', {}),
             task(105, 'Marcar consulta no dentista', {
                 completed: true,
-                completedAt: '2026-09-18T08:10:00.000Z'
-            })
-        ]
+                completedAt: '2026-09-18T08:10:00.000Z',
+            }),
+        ],
     },
     { id: 2, name: 'Work', icon: '', color: '#2196f3', tasks: [] },
-    { id: 3, name: 'Study', icon: '', color: '#9c27b0', tasks: [] }
+    { id: 3, name: 'Study', icon: '', color: '#9c27b0', tasks: [] },
 ];
 
 const TAG_DEFS = [{ name: 'work', color: '#e22134' }];
@@ -77,7 +77,7 @@ function task(id, text, extra) {
             tags: [],
             notesOpen: false,
             subtasksOpen: false,
-            createdAt: '2026-09-15T10:00:00.000Z'
+            createdAt: '2026-09-15T10:00:00.000Z',
         },
         extra
     );
@@ -105,8 +105,8 @@ const test = base.extend({
                             { date: '2026-09-14', count: 2 },
                             { date: '2026-09-16', count: 5 },
                             { date: '2026-09-17', count: 3 },
-                            { date: today, count: 4 }
-                        ]
+                            { date: today, count: 4 },
+                        ],
                     })
                 );
             },
@@ -114,7 +114,7 @@ const test = base.extend({
         );
 
         await use(page);
-    }
+    },
 });
 
 /** Loads the app and waits until it is actually painted. */
@@ -125,7 +125,10 @@ async function openApp(page, { theme = 'dark' } = {}) {
     // The webfont arrives after first paint and reflows every label.
     await page.evaluate(() => document.fonts.ready);
     // The radio bars animate; the pomodoro ring does not, but both settle here.
-    await page.addStyleTag({ content: '*, *::before, *::after { animation: none !important; transition: none !important; }' });
+    await page.addStyleTag({
+        content:
+            '*, *::before, *::after { animation: none !important; transition: none !important; }',
+    });
 }
 
 module.exports = { test, expect, openApp, TODAY };

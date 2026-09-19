@@ -64,7 +64,9 @@ function boot() {
     }
 
     return {
-        stop() { intervals.forEach(clearInterval); }
+        stop() {
+            intervals.forEach(clearInterval);
+        },
     };
 }
 
@@ -73,7 +75,7 @@ function reset() {
     localStorage.clear();
     globalThis.__app.lists = [
         { id: 1, name: 'Personal', icon: 'P', tasks: [] },
-        { id: 2, name: 'Work', icon: 'W', tasks: [] }
+        { id: 2, name: 'Work', icon: 'W', tasks: [] },
     ];
     globalThis.__app.trash = [];
     globalThis.__app.tagDefs = [];
@@ -86,7 +88,7 @@ function reset() {
 function addTaskText(text) {
     document.getElementById('task-input').value = text;
     globalThis.addTask();
-    const tasks = globalThis.__app.lists.find(l => l.id === globalThis.__app.currentListId).tasks;
+    const tasks = globalThis.__app.lists.find((l) => l.id === globalThis.__app.currentListId).tasks;
     return tasks[tasks.length - 1];
 }
 

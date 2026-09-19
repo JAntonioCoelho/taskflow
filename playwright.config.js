@@ -19,24 +19,27 @@ module.exports = defineConfig({
         toHaveScreenshot: {
             // Font hinting moves a pixel or two between runs on the same box.
             maxDiffPixelRatio: 0.002,
-            animations: 'disabled'
-        }
+            animations: 'disabled',
+        },
     },
 
     use: {
         baseURL: 'http://127.0.0.1:4173',
-        screenshot: 'only-on-failure'
+        screenshot: 'only-on-failure',
     },
 
     projects: [
-        { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
-        { name: 'mobile', use: { ...devices['Pixel 7'] } }
+        {
+            name: 'desktop',
+            use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
+        },
+        { name: 'mobile', use: { ...devices['Pixel 7'] } },
     ],
 
     webServer: {
         command: 'npx http-server . -p 4173 -c-1 --silent',
         url: 'http://127.0.0.1:4173/index.html',
         reuseExistingServer: !process.env.CI,
-        timeout: 120000
-    }
+        timeout: 120000,
+    },
 });

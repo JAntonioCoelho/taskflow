@@ -262,7 +262,9 @@ describe('the task menu and its shortcuts', () => {
     test('every action renders with a label', () => {
         const task = addTaskText('Menu target');
         openTaskMenu(task.id, document.querySelector('[data-task-id="' + task.id + '"] .menu-btn'));
-        const labels = [...document.querySelectorAll('.task-menu-item span')].map((e) => e.textContent);
+        const labels = [...document.querySelectorAll('.task-menu-item span')].map(
+            (e) => e.textContent
+        );
         expect(labels).toContain('Add to My Day');
         expect(labels).toContain('Delete');
         expect(labels.every((l) => l.trim().length > 0)).toBe(true);
@@ -318,7 +320,7 @@ describe('the command palette', () => {
         expect(items[0].group).toBe('Create');
         expect(items[0].label).toContain('renda');
         expect(items.filter((i) => i.group === 'Tasks').map((i) => i.label)).toEqual([
-            'Pagar a renda'
+            'Pagar a renda',
         ]);
         closePalette();
     });
